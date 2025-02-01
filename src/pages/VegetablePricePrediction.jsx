@@ -53,7 +53,7 @@ const VegetablePricePrediction = () => {
   const getInitialOptions = async () => {
     try {
       const response = await fetch(
-        'https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key=AIzaSyCyozrcOfWc4Q4fLCfJFtc5-lF5VTcwmOQ',
+        'https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key=AIzaSyAD1IsW4iMD1HnZjP1MYHb5Qb8CqwOLFXs',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
