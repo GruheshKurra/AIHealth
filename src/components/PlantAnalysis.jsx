@@ -431,7 +431,7 @@ const PlantAnalysis = () => {
           setProgress(60);
 
           const response = await fetch(
-            'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=AIzaSyAPAxDuNVKDzmXwG6K0V9kxhGrJGnvjjKY',
+            'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=AIzaSyBsVQd8YdS1rTIXKhucs321T6Rzc2ZpD-Q',
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
