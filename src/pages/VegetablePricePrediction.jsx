@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, Search, Loader2, Calendar, DollarSign, ArrowUpRight, ArrowDownRight, MapPin, Sun, Award, Store } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -46,41 +46,13 @@ const VegetablePricePrediction = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [predictionData, setPredictionData] = useState(null);
-  const [formOptions, setFormOptions] = useState({
-    vegetables: [], states: [], seasons: [], qualityGrades: [], marketTypes: []
-  });
-
-  const getInitialOptions = async () => {
-    try {
-      const response = await fetch(
-        'https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key=AIzaSyDxjgZujdbzrM7n_JZAvcLFmcM9KwFYdXQ',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: `Generate lists of options for vegetable price prediction form in this JSON format:
-              {
-                "vegetables": ["list of common Indian vegetables"],
-                "states": ["list of major agricultural Indian states"],
-                "seasons": ["list of Indian agricultural seasons"],
-                "qualityGrades": ["list of standard produce quality grades"],
-                "marketTypes": ["list of different market types"]
-              }` }] }],
-            generationConfig: { temperature: 0.4, topK: 32, topP: 1, maxOutputTokens: 1024 }
-          })
-        }
-      );
-      if (!response.ok) throw new Error('Failed to get options');
-      const data = await response.json();
-      const responseText = data.candidates[0]?.content?.parts[0]?.text || '';
-      const jsonStart = responseText.indexOf('{');
-      const jsonEnd = responseText.lastIndexOf('}') + 1;
-      const jsonStr = responseText.slice(jsonStart, jsonEnd);
-      return JSON.parse(jsonStr);
-    } catch (error) {
-      console.error('Error:', error);
-      return null;
-    }
+  
+  const formOptions = {
+    vegetables: ["Tomato", "Potato", "Onion", "Carrot", "Cauliflower", "Cabbage", "Brinjal", "Okra", "Peas", "Spinach", "Bitter Gourd", "Cucumber", "Beetroot", "Radish", "Green Chili"],
+    states: ["Maharashtra", "Karnataka", "Uttar Pradesh", "West Bengal", "Punjab", "Gujarat", "Tamil Nadu", "Andhra Pradesh", "Madhya Pradesh", "Bihar", "Haryana", "Rajasthan", "Kerala"],
+    seasons: ["Summer", "Winter", "Monsoon", "Spring", "Autumn"],
+    qualityGrades: ["Grade A", "Grade B", "Grade C", "Premium", "Standard", "Economy"],
+    marketTypes: ["Wholesale", "Retail", "Farmers Market", "Export", "Online", "Supermarket"]
   };
 
   const getPredictions = async () => {
@@ -136,14 +108,6 @@ const VegetablePricePrediction = () => {
     const jsonEnd = responseText.lastIndexOf('}') + 1;
     return JSON.parse(responseText.slice(jsonStart, jsonEnd));
   };
-
-  useEffect(() => {
-    const loadOptions = async () => {
-      const options = await getInitialOptions();
-      if (options) setFormOptions(options);
-    };
-    loadOptions();
-  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
