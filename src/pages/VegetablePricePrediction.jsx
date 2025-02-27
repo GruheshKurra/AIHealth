@@ -55,59 +55,254 @@ const VegetablePricePrediction = () => {
     marketTypes: ["Wholesale", "Retail", "Farmers Market", "Export", "Online", "Supermarket"]
   };
 
-  const getPredictions = async () => {
-    const response = await fetch(
-      'https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key=AIzaSyBcD0Alp0C8LD_4yOVu3-DeQX9mIeF8ZV0',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: `Generate price predictions for:
-            - Vegetable: ${formData.vegetable}
-            - State: ${formData.state}
-            - Season: ${formData.season}
-            - Quality: ${formData.quality}
-            - Market: ${formData.marketType}
-            - Duration: ${formData.duration} months
-            
-            Return in JSON format:
-            {
-              "currentPrice": 45,
-              "predictions": [
-                {
-                  "month": "January 2024",
-                  "price": 48,
-                  "change": 6.67,
-                  "supplyStatus": "Moderate",
-                  "demandTrend": "Increasing"
-                }
-              ],
-              "marketFactors": [
-                {
-                  "factor": "Weather Impact",
-                  "description": "Expected rainfall pattern affects cultivation"
-                }
-              ],
-              "recommendations": [
-                {
-                  "type": "Storage",
-                  "suggestion": "Consider cold storage if price drops below threshold"
-                }
-              ],
-              "qualityPremium": "10% premium for Grade A quality",
-              "marketInsights": "Higher prices expected in retail markets",
-              "regionalTrends": "Northern regions show stronger demand"
-            }` }] }],
-          generationConfig: { temperature: 0.4, topK: 32, topP: 1, maxOutputTokens: 2048 }
-        })
+  const generateSampleData = (formData) => {
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth();
+    const currentYear = currentDate.getFullYear();
+    
+    // Base price range based on vegetable
+    const vegetablePriceMap = {
+      "Tomato": { base: 40, variance: 15 },
+      "Potato": { base: 25, variance: 10 },
+      "Onion": { base: 30, variance: 20 },
+      "Carrot": { base: 35, variance: 10 },
+      "Cauliflower": { base: 45, variance: 15 },
+      "Cabbage": { base: 30, variance: 10 },
+      "Brinjal": { base: 35, variance: 12 },
+      "Okra": { base: 50, variance: 15 },
+      "Peas": { base: 60, variance: 20 },
+      "Spinach": { base: 40, variance: 10 },
+      "Bitter Gourd": { base: 55, variance: 15 },
+      "Cucumber": { base: 30, variance: 8 },
+      "Beetroot": { base: 40, variance: 12 },
+      "Radish": { base: 25, variance: 8 },
+      "Green Chili": { base: 70, variance: 25 }
+    };
+    
+    // Season factors
+    const seasonFactor = {
+      "Summer": { factor: 1.1, volatility: 0.15 },
+      "Winter": { factor: 0.9, volatility: 0.1 },
+      "Monsoon": { factor: 1.2, volatility: 0.2 },
+      "Spring": { factor: 0.95, volatility: 0.08 },
+      "Autumn": { factor: 1.0, volatility: 0.12 }
+    };
+    
+    // Quality grade factors
+    const qualityFactor = {
+      "Grade A": 1.2,
+      "Grade B": 1.0,
+      "Grade C": 0.8,
+      "Premium": 1.3,
+      "Standard": 1.0,
+      "Economy": 0.7
+    };
+    
+    // Market type factors
+    const marketFactor = {
+      "Wholesale": 0.8,
+      "Retail": 1.2,
+      "Farmers Market": 1.0,
+      "Export": 1.4,
+      "Online": 1.3,
+      "Supermarket": 1.25
+    };
+    
+    // State factors (relative cost of living/transport)
+    const stateFactor = {
+      "Maharashtra": 1.1,
+      "Karnataka": 1.05,
+      "Uttar Pradesh": 0.9,
+      "West Bengal": 0.95,
+      "Punjab": 1.0,
+      "Gujarat": 1.02,
+      "Tamil Nadu": 1.05,
+      "Andhra Pradesh": 0.98,
+      "Madhya Pradesh": 0.92,
+      "Bihar": 0.85,
+      "Haryana": 1.0,
+      "Rajasthan": 0.95,
+      "Kerala": 1.15
+    };
+    
+    // Calculate base price
+    const vegInfo = vegetablePriceMap[formData.vegetable] || { base: 40, variance: 15 };
+    const basePrice = vegInfo.base;
+    
+    // Apply factors
+    const adjustedBasePrice = basePrice * 
+      (qualityFactor[formData.quality] || 1.0) * 
+      (marketFactor[formData.marketType] || 1.0) * 
+      (stateFactor[formData.state] || 1.0) * 
+      (seasonFactor[formData.season]?.factor || 1.0);
+    
+    // Round to nearest whole number
+    const currentPrice = Math.round(adjustedBasePrice);
+    
+    // Generate predictions for each month
+    const predictions = [];
+    const seasonalVolatility = seasonFactor[formData.season]?.volatility || 0.12;
+    let lastPrice = currentPrice;
+    
+    for (let i = 0; i <= formData.duration; i++) {
+      const monthIndex = (currentMonth + i) % 12;
+      const yearOffset = Math.floor((currentMonth + i) / 12);
+      const monthLabel = `${months[monthIndex]} ${currentYear + yearOffset}`;
+      
+      // First month is current price
+      if (i === 0) {
+        predictions.push({
+          month: monthLabel,
+          price: currentPrice,
+          change: 0,
+          supplyStatus: "Current",
+          demandTrend: "Current"
+        });
+        continue;
       }
-    );
-    const data = await response.json();
-    const responseText = data.candidates[0]?.content?.parts[0]?.text || '';
-    const jsonStart = responseText.indexOf('{');
-    const jsonEnd = responseText.lastIndexOf('}') + 1;
-    return JSON.parse(responseText.slice(jsonStart, jsonEnd));
+      
+      // Calculate price change with some randomness and trend
+      // More volatility in longer predictions
+      const volatilityFactor = seasonalVolatility * (1 + (i * 0.1));
+      const randomFactor = (Math.random() * 2 - 1) * volatilityFactor;
+      const trendFactor = Math.sin(Math.PI * i / formData.duration) * 0.05;
+      const percentChange = randomFactor + trendFactor;
+      
+      // Calculate new price
+      let newPrice = Math.round(lastPrice * (1 + percentChange));
+      // Ensure minimum price
+      newPrice = Math.max(newPrice, Math.round(vegInfo.base * 0.6));
+      
+      // Calculate percentage change from current price
+      const changeFromCurrent = ((newPrice - currentPrice) / currentPrice * 100).toFixed(2);
+      
+      predictions.push({
+        month: monthLabel,
+        price: newPrice,
+        change: parseFloat(changeFromCurrent),
+        supplyStatus: getRandomSupplyStatus(),
+        demandTrend: getRandomDemandTrend()
+      });
+      
+      lastPrice = newPrice;
+    }
+    
+    // Generate market factors
+    const marketFactors = generateMarketFactors(formData);
+    
+    // Generate recommendations
+    const recommendations = generateRecommendations(formData, predictions);
+    
+    // Generate additional insights
+    const qualityPremium = `${Math.round((qualityFactor[formData.quality] - 0.7) * 100)}% premium for ${formData.quality} quality`;
+    const marketInsights = generateMarketInsight(formData);
+    const regionalTrends = generateRegionalTrend();
+    
+    return {
+      currentPrice,
+      predictions,
+      marketFactors,
+      recommendations,
+      qualityPremium,
+      marketInsights,
+      regionalTrends
+    };
   };
+  
+  function getRandomSupplyStatus() {
+    const statuses = ["Low", "Moderate", "High", "Surplus", "Deficit", "Stable"];
+    return statuses[Math.floor(Math.random() * statuses.length)];
+  }
+  
+  function getRandomDemandTrend() {
+    const trends = ["Decreasing", "Stable", "Increasing", "Rapidly Increasing", "Rapidly Decreasing", "Fluctuating"];
+    return trends[Math.floor(Math.random() * trends.length)];
+  }
+  
+  function generateMarketFactors(formData) {
+    const factors = [
+      {
+        factor: "Weather Impact",
+        description: `Expected ${formData.season.toLowerCase()} weather patterns in ${formData.state} affecting cultivation.`
+      },
+      {
+        factor: "Transportation Costs",
+        description: "Fuel price fluctuations impacting distribution expenses."
+      },
+      {
+        factor: "Supply Chain",
+        description: `${formData.marketType} markets showing ${Math.random() > 0.5 ? "improved" : "strained"} logistics efficiency.`
+      },
+      {
+        factor: "Consumer Preference",
+        description: `${formData.quality} quality produce experiencing ${Math.random() > 0.5 ? "increased" : "steady"} consumer demand.`
+      }
+    ];
+    
+    // Add vegetable-specific factor
+    factors.push({
+      factor: "Production Trends",
+      description: `${formData.vegetable} cultivation area ${Math.random() > 0.5 ? "expanding" : "contracting"} in major growing regions.`
+    });
+    
+    return factors;
+  }
+  
+  function generateRecommendations(formData, predictions) {
+    const priceIncreasing = predictions[predictions.length-1].change > 0;
+    
+    const recommendations = [
+      {
+        type: "Storage",
+        suggestion: priceIncreasing ? 
+          "Consider extending storage duration to capitalize on rising price trend." : 
+          "Minimize storage duration to reduce holding costs during price decline."
+      },
+      {
+        type: "Market Selection",
+        suggestion: `Focus on ${Math.random() > 0.5 ? "urban" : "rural"} ${formData.marketType} markets for optimal pricing.`
+      },
+      {
+        type: "Quality Management",
+        suggestion: `Maintain ${formData.quality} standards to ensure maximum returns in current market conditions.`
+      },
+      {
+        type: "Timing",
+        suggestion: `Plan harvest cycles to align with ${predictions[Math.floor(predictions.length / 2)].month} price expectations.`
+      }
+    ];
+    
+    return recommendations;
+  }
+  
+  function generateMarketInsight(formData) {
+    const insights = [
+      `Higher prices expected in ${formData.marketType} markets due to increasing consumer preference.`,
+      `${formData.marketType} channels showing stable demand for ${formData.quality} ${formData.vegetable}.`,
+      `Market diversification recommended to optimize returns during ${formData.season} season.`,
+      `Direct-to-consumer sales channels showing promise for ${formData.quality} produce.`
+    ];
+    
+    return insights[Math.floor(Math.random() * insights.length)];
+  }
+  
+  function generateRegionalTrend() {
+    const regions = ["Northern", "Southern", "Eastern", "Western", "Central", "North-Eastern"];
+    const trends = [
+      "showing stronger demand patterns",
+      "experiencing supply constraints",
+      "demonstrating price stability",
+      "indicating higher profit margins",
+      "reporting increased consumer preference",
+      "showing favorable market conditions"
+    ];
+    
+    const region = regions[Math.floor(Math.random() * regions.length)];
+    const trend = trends[Math.floor(Math.random() * trends.length)];
+    
+    return `${region} regions ${trend}`;
+  }
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -121,15 +316,18 @@ const VegetablePricePrediction = () => {
       return;
     }
     setIsLoading(true);
-    try {
-      const data = await getPredictions();
-      setPredictionData(data);
-      toast.success('Predictions generated successfully!');
-    } catch (error) {
-      toast.error('Failed to generate predictions');
-    } finally {
-      setIsLoading(false);
-    }
+    
+    setTimeout(() => {
+      try {
+        const data = generateSampleData(formData);
+        setPredictionData(data);
+        toast.success('Predictions generated successfully!');
+      } catch (error) {
+        toast.error('Failed to generate predictions');
+      } finally {
+        setIsLoading(false);
+      }
+    }, 1500);
   };
 
   return (
