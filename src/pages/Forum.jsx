@@ -127,71 +127,112 @@ const Forum = () => {
   const [threads, setThreads] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const generateResponse = async (userQuery) => {
-    try {
-      const farmer1 = generateRandomFarmerName();
-      const farmer2 = generateRandomFarmerName();
+  // Sample responses for common farming topics
+  const farmingResponses = {
+    irrigation: [
+      "I've been using drip irrigation for my crops, and it's saved about 30% water compared to flood irrigation. The initial setup cost is high, but it pays off in 2-3 seasons.",
+      "In our village, we still rely on traditional canal irrigation but improved it with scheduled watering. We only irrigate in early morning or evening to reduce evaporation loss.",
+      "For water conservation, I've implemented a rainwater harvesting system with small check dams. This has helped maintain groundwater levels even during dry seasons.",
+      "After years of farming, I've found that mulching combined with drip irrigation works best in our soil. It reduces water usage by almost 40% and keeps weeds in check too."
+    ],
+    pests: [
+      "For controlling aphids, I spray a mixture of neem oil and soap solution once a week. This natural remedy has worked better than chemicals for me over the years.",
+      "We use companion planting in our fields - marigolds keep many pests away from vegetables. This traditional method has been passed down for generations in our village.",
+      "I've had success with trap crops around the main field. Pests attack these sacrificial plants first, protecting our main crop without needing heavy pesticides.",
+      "After trying many methods, I now release ladybugs in my fields to control aphids. This biological control has reduced my pesticide use by 70% in the last three years."
+    ],
+    soil: [
+      "I've been practicing crop rotation for 15 years now, and it has maintained my soil fertility without excessive fertilizers. We rotate legumes with grains every season.",
+      "In our village, we prepare our own vermicompost using farm waste. This has improved our soil structure tremendously over the years.",
+      "Green manuring has been my secret to maintaining healthy soil. I grow dhaincha before rice cultivation and plow it back into the soil when it flowers.",
+      "After years of chemical farming, I switched to organic methods with cow dung manure and jeevamrut. In three years, the soil texture improved significantly with better water retention."
+    ],
+    crops: [
+      "For wheat cultivation, I've found that early sowing by mid-November gives the best yields in our region. It avoids the terminal heat stress in March-April.",
+      "We've started intercropping chickpea with mustard and it's working very well. The mustard repels pests that attack chickpea, and we get two crops from the same land.",
+      "In our village, we're now growing quinoa as it needs less water than rice and fetches good market prices. The initial learning curve was difficult but worth it.",
+      "After experimenting with different varieties, I've settled on growing native rice varieties using SRI method. The yield is comparable to hybrid varieties but with lower input costs."
+    ],
+    weather: [
+      "We've developed a system to predict rainfall by observing insect behavior and cloud patterns. It's more accurate for our local conditions than the weather reports.",
+      "To deal with unseasonal rains, I've constructed small drainage channels throughout my fields. This simple solution has saved my crops multiple times in the last few years.",
+      "In our region, we now plant heat-tolerant varieties as summers are getting hotter. The traditional varieties we used to grow are no longer suitable with changing climate.",
+      "We've started using shade nets for vegetable cultivation during peak summer months. The initial investment is recovered within two seasons with better quality produce."
+    ],
+    market: [
+      "I've joined a farmer producer organization, and we're selling directly to urban consumers. This has increased our profits by eliminating middlemen.",
+      "Our village has started a WhatsApp group to share market prices from different mandis. This information helps us decide where to sell our produce for better returns.",
+      "I've found that grading and sorting my vegetables before taking them to market increases my profit by at least 15%. Buyers are willing to pay premium for quality produce.",
+      "We've started processing part of our produce into pickles and preserves. This value addition has doubled our income compared to selling raw produce."
+    ],
+    equipment: [
+      "Our village collectively purchased a tractor and implements which we share on rotation. This has reduced our individual costs while making mechanization accessible.",
+      "I've modified my traditional plow to work better in our stony soil. This local innovation has increased my work efficiency without expensive equipment.",
+      "After trying several options, I invested in a power weeder which has reduced our labor costs by 60%. It was expensive but paid for itself within two seasons.",
+      "In our area, we've reverted to using bullocks for some operations as it's more suitable for small terraced fields where tractors can't operate efficiently."
+    ],
+    general: [
+      "I've found that maintaining a farm diary to record all activities and observations has improved my decision making. I refer to previous years' notes before planning.",
+      "In our village, we practice the tradition of seed sharing which has helped preserve local varieties. These indigenous seeds are more resilient to local conditions.",
+      "After farming for 25 years, I've learned that timing is more important than quantity when it comes to inputs. Applying the right input at the right growth stage makes all the difference.",
+      "We've formed a knowledge sharing group in our village where the experienced farmers mentor younger ones. This has helped preserve traditional knowledge while adopting new techniques."
+    ]
+  };
 
-      const prompt = `You are simulating responses from two different Indian farmers to this farming-related question. 
-      Format the response as JSON with two responses from farmers with these profiles:
-      
-      Farmer 1: ${farmer1.name} from ${farmer1.village} with ${farmer1.experience} years of experience
-      Farmer 2: ${farmer2.name} from ${farmer2.village} with ${farmer2.experience} years of experience
-
-      Make their responses authentic, including local context, traditional knowledge, and practical experience.
-      Each response should be 2-3 sentences in english.
-
-      Question: "${userQuery}"
-
-      Response format:
-      {
-        "responses": [
-          {
-            "author": "${farmer1.name}",
-            "village": "${farmer1.village}",
-            "experience": ${farmer1.experience},
-            "content": "farmer's response here"
-          },
-          {
-            "author": "${farmer2.name}",
-            "village": "${farmer2.village}",
-            "experience": ${farmer2.experience},
-            "content": "farmer's response here"
-          }
-        ]
-      }`;
-
-      const response = await fetch(
-        'https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key=AIzaSyDxjgZujdbzrM7n_JZAvcLFmcM9KwFYdXQ',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: {
-              temperature: 0.7,
-              topK: 40,
-              topP: 0.8,
-              maxOutputTokens: 1024
-            }
-          })
-        }
-      );
-
-      if (!response.ok) throw new Error('Failed to get response');
-
-      const data = await response.json();
-      const responseText = data.candidates[0]?.content?.parts[0]?.text || '';
-      
-      const jsonStart = responseText.indexOf('{');
-      const jsonEnd = responseText.lastIndexOf('}') + 1;
-      const jsonStr = responseText.slice(jsonStart, jsonEnd);
-      return JSON.parse(jsonStr).responses;
-
-    } catch (error) {
-      console.error('Error:', error);
-      throw new Error('Failed to generate responses');
+  const generateResponse = (userQuery) => {
+    // Generate farmer profiles
+    const farmer1 = generateRandomFarmerName();
+    const farmer2 = generateRandomFarmerName();
+    
+    // Determine the topic of the query
+    const queryLower = userQuery.toLowerCase();
+    let responseTopic = 'general';
+    
+    if (queryLower.includes('water') || queryLower.includes('irrigation') || queryLower.includes('rain') || queryLower.includes('drought')) {
+      responseTopic = 'irrigation';
+    } else if (queryLower.includes('pest') || queryLower.includes('insect') || queryLower.includes('bug') || queryLower.includes('disease')) {
+      responseTopic = 'pests';
+    } else if (queryLower.includes('soil') || queryLower.includes('fertilizer') || queryLower.includes('compost') || queryLower.includes('nutrient')) {
+      responseTopic = 'soil';
+    } else if (queryLower.includes('crop') || queryLower.includes('seed') || queryLower.includes('variety') || queryLower.includes('plant')) {
+      responseTopic = 'crops';
+    } else if (queryLower.includes('weather') || queryLower.includes('climate') || queryLower.includes('temperature') || queryLower.includes('season')) {
+      responseTopic = 'weather';
+    } else if (queryLower.includes('market') || queryLower.includes('price') || queryLower.includes('sell') || queryLower.includes('profit')) {
+      responseTopic = 'market';
+    } else if (queryLower.includes('equipment') || queryLower.includes('tool') || queryLower.includes('machine') || queryLower.includes('tractor')) {
+      responseTopic = 'equipment';
     }
+    
+    // Randomly select responses for the determined topic
+    const availableResponses = [...farmingResponses[responseTopic]];
+    
+    // Ensure we get two different responses
+    const shuffleArray = array => {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    };
+    
+    shuffleArray(availableResponses);
+    
+    // Format responses with farmer information
+    return [
+      {
+        author: farmer1.name,
+        village: farmer1.village,
+        experience: farmer1.experience,
+        content: availableResponses[0] || "Based on my experience, I've seen good results with traditional farming methods combined with some modern techniques. Every region has its own unique challenges."
+      },
+      {
+        author: farmer2.name,
+        village: farmer2.village,
+        experience: farmer2.experience,
+        content: availableResponses[1] || "In our area, we follow practices that have been passed down for generations. It's important to adapt to changing conditions while respecting traditional knowledge."
+      }
+    ];
   };
 
   const handleSubmit = async (e) => {
@@ -208,14 +249,17 @@ const Forum = () => {
         content: query
       };
 
-      const responses = await generateResponse(query);
-      setThreads(prev => [...prev, { question: userMessage, responses }]);
-      setQuery('');
+      // Use timeout to simulate API call
+      setTimeout(() => {
+        const responses = generateResponse(query);
+        setThreads(prev => [...prev, { question: userMessage, responses }]);
+        setQuery('');
+        toast.success('Farmers have responded to your question!');
+        setIsLoading(false);
+      }, 1500);
       
-      toast.success('Farmers have responded to your question!');
     } catch (error) {
       toast.error('Failed to get responses. Please try again.');
-    } finally {
       setIsLoading(false);
     }
   };
