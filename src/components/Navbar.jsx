@@ -15,7 +15,8 @@ import {
   MapPin,
   LayoutGrid,
   Heart,
-  Wrench
+  Wrench,
+  Sparkles
 } from 'lucide-react';
 
 const DropdownMenu = ({ title, items, isOpen, onClick }) => {
@@ -50,7 +51,12 @@ const DropdownMenu = ({ title, items, isOpen, onClick }) => {
                 }`}
               >
                 <item.icon className="w-4 h-4" />
-                <span>{item.label}</span>
+                <span className="flex items-center">
+                  {item.label}
+                  {item.useAI && (
+                    <Sparkles className="w-3 h-3 text-yellow-400 ml-1.5" />
+                  )}
+                </span>
               </Link>
             ))}
           </motion.div>
@@ -69,15 +75,15 @@ const Navbar = () => {
     analysis: {
       title: 'Analysis Tools',
       items: [
-        { path: '/plant-analysis', icon: Leaf, label: 'Plant Analysis' },
-        { path: '/pest-analysis', icon: Bug, label: 'Pest Analysis' },
+        { path: '/plant-analysis', icon: Leaf, label: 'Plant Analysis', useAI: true },
+        { path: '/pest-analysis', icon: Bug, label: 'Pest Analysis', useAI: true },
         { path: '/soil-analysis', icon: FlaskConical, label: 'Soil Analysis' }
       ]
     },
     services: {
       title: 'Services',
       items: [
-        { path: '/price-prediction', icon: TrendingUp, label: 'Price Prediction' },
+        { path: '/price-prediction', icon: TrendingUp, label: 'Price Prediction', useAI: true },
         { path: '/land-lease', icon: MapPin, label: 'Land Lease' },
         { path: '/equipment-lease', icon: Wrench, label: 'Equipment Lease' }
       ]
@@ -85,7 +91,7 @@ const Navbar = () => {
     community: {
       title: 'Community',
       items: [
-        { path: '/forum', icon: MessageCircle, label: 'Forum' },
+        { path: '/forum', icon: MessageCircle, label: 'Forum', useAI: true },
         { path: '/news', icon: FileText, label: 'News' },
         { path: '/farmer-support', icon: Heart, label: 'Support Farmers' }
       ]
@@ -195,7 +201,12 @@ const Navbar = () => {
                         }`}
                       >
                         <item.icon className="w-4 h-4" />
-                        <span>{item.label}</span>
+                        <span className="flex items-center">
+                          {item.label}
+                          {item.useAI && (
+                            <Sparkles className="w-3 h-3 text-yellow-400 ml-1.5" />
+                          )}
+                        </span>
                       </Link>
                     ))}
                   </div>
