@@ -3,11 +3,17 @@
 @tailwind utilities;
 
 @layer base {
+  * {
+    font-family: "Satoshi", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
   html {
-    font-family: 'Helvetica', system-ui, sans-serif;
     scroll-behavior: smooth;
   }
-  
+
   body {
     @apply bg-green-950 text-green-50;
   }

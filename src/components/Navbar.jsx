@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Home, 
-  Leaf, 
-  Menu, 
+import { SignInButton, SignedIn, SignedOut, UserButton, useUser } from '@clerk/clerk-react';
+import {
+  Home,
+  Leaf,
+  Menu,
   X,
   ChevronDown,
   FlaskConical,
@@ -16,7 +17,8 @@ import {
   LayoutGrid,
   Heart,
   Wrench,
-  Sparkles
+  Sparkles,
+  LogIn
 } from 'lucide-react';
 
 const DropdownMenu = ({ title, items, isOpen, onClick }) => {
@@ -46,9 +48,8 @@ const DropdownMenu = ({ title, items, isOpen, onClick }) => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center space-x-2 px-4 py-2.5 hover:bg-green-800 transition-colors ${
-                  isActivePath(item.path) ? 'bg-green-800 text-green-200' : 'text-green-100'
-                }`}
+                className={`flex items-center space-x-2 px-4 py-2.5 hover:bg-green-800 transition-colors ${isActivePath(item.path) ? 'bg-green-800 text-green-200' : 'text-green-100'
+                  }`}
               >
                 <item.icon className="w-4 h-4" />
                 <span className="flex items-center">
@@ -70,6 +71,7 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
   const location = useLocation();
+  const { user } = useUser();
 
   const dropdownMenus = {
     analysis: {
@@ -128,11 +130,10 @@ const Navbar = () => {
           <div className="hidden md:flex items-center space-x-2">
             <Link
               to="/"
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
-                location.pathname === '/'
-                  ? 'bg-green-800 text-green-200'
-                  : 'text-green-100 hover:bg-green-800/50 hover:text-green-200'
-              }`}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${location.pathname === '/'
+                ? 'bg-green-800 text-green-200'
+                : 'text-green-100 hover:bg-green-800/50 hover:text-green-200'
+                }`}
             >
               <Home className="w-4 h-4" />
               <span>Home</span>
@@ -150,6 +151,28 @@ const Navbar = () => {
                 }}
               />
             ))}
+          </div>
+
+          {/* Authentication Section */}
+          <div className="hidden md:flex items-center space-x-4">
+            <SignedOut>
+              <SignInButton mode="modal">
+                <button className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
+                  <LogIn className="w-4 h-4" />
+                  <span>Sign In</span>
+                </button>
+              </SignInButton>
+            </SignedOut>
+            <SignedIn>
+              <div className="flex items-center space-x-3">
+                {user && (
+                  <span className="text-green-100 text-sm">
+                    Welcome, {user.firstName || user.username || 'User'}!
+                  </span>
+                )}
+                <UserButton />
+              </div>
+            </SignedIn>
           </div>
 
           {/* Mobile Menu Button */}
@@ -172,13 +195,34 @@ const Navbar = () => {
             className="md:hidden border-t border-green-800"
           >
             <div className="px-2 py-3">
+              {/* Mobile Authentication */}
+              <div className="mb-4 px-3">
+                <SignedOut>
+                  <SignInButton mode="modal">
+                    <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
+                      <LogIn className="w-4 h-4" />
+                      <span>Sign In</span>
+                    </button>
+                  </SignInButton>
+                </SignedOut>
+                <SignedIn>
+                  <div className="flex items-center justify-between">
+                    {user && (
+                      <span className="text-green-100 text-sm">
+                        Welcome, {user.firstName || user.username || 'User'}!
+                      </span>
+                    )}
+                    <UserButton />
+                  </div>
+                </SignedIn>
+              </div>
+
               <Link
                 to="/"
-                className={`flex items-center space-x-2 px-3 py-2 rounded-lg mb-2 ${
-                  location.pathname === '/'
-                    ? 'bg-green-800 text-green-200'
-                    : 'text-green-100 hover:bg-green-800/50'
-                }`}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-lg mb-2 ${location.pathname === '/'
+                  ? 'bg-green-800 text-green-200'
+                  : 'text-green-100 hover:bg-green-800/50'
+                  }`}
               >
                 <Home className="w-4 h-4" />
                 <span>Home</span>
@@ -194,11 +238,10 @@ const Navbar = () => {
                       <Link
                         key={item.path}
                         to={item.path}
-                        className={`flex items-center space-x-2 px-6 py-2 rounded-lg ${
-                          location.pathname === item.path
-                            ? 'bg-green-800 text-green-200'
-                            : 'text-green-100 hover:bg-green-800/50'
-                        }`}
+                        className={`flex items-center space-x-2 px-6 py-2 rounded-lg ${location.pathname === item.path
+                          ? 'bg-green-800 text-green-200'
+                          : 'text-green-100 hover:bg-green-800/50'
+                          }`}
                       >
                         <item.icon className="w-4 h-4" />
                         <span className="flex items-center">

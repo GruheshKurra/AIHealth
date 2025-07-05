@@ -423,7 +423,7 @@ Important:
           toast.info('Analyzing pest characteristics...');
 
           const response = await fetch(
-            'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=AIzaSyDxjgZujdbzrM7n_JZAvcLFmcM9KwFYdXQ',
+            `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },

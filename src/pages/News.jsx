@@ -19,8 +19,8 @@ const NewsCard = ({ article, index }) => {
     >
       {article.image && (
         <div className="aspect-video overflow-hidden relative">
-          <img 
-            src={article.image} 
+          <img
+            src={article.image}
             alt={article.title}
             className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
             onError={(e) => e.target.style.display = 'none'}
@@ -28,7 +28,7 @@ const NewsCard = ({ article, index }) => {
           <div className="absolute inset-0 bg-gradient-to-t from-green-900/90 to-transparent" />
         </div>
       )}
-      
+
       <div className="p-6 flex flex-col flex-grow">
         <div className="flex items-center text-green-400 text-sm mb-3 space-x-4">
           <div className="flex items-center">
@@ -44,15 +44,15 @@ const NewsCard = ({ article, index }) => {
         <h3 className="text-xl font-semibold text-green-200 mb-3 line-clamp-2 hover:text-green-300 transition-colors">
           {article.title}
         </h3>
-        
+
         <p className="text-green-100/90 mb-4 line-clamp-3 flex-grow text-sm">
           {article.description}
         </p>
 
         <div className="mt-auto pt-4 border-t border-green-800/50">
-          <a 
-            href={article.url} 
-            target="_blank" 
+          <a
+            href={article.url}
+            target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center text-green-400 hover:text-green-300 transition-colors group/link"
           >
@@ -88,11 +88,10 @@ const CategoryButton = ({ active, children, onClick }) => (
     whileHover={{ scale: 1.05 }}
     whileTap={{ scale: 0.95 }}
     onClick={onClick}
-    className={`px-4 py-2 rounded-full transition-all duration-300 ${
-      active
+    className={`px-4 py-2 rounded-full transition-all duration-300 ${active
         ? 'bg-green-500 text-green-950 font-medium shadow-lg ring-2 ring-green-400/50'
         : 'bg-green-900/50 text-green-300 hover:bg-green-800 ring-1 ring-green-800/50'
-    }`}
+      }`}
   >
     {children}
   </motion.button>
@@ -117,11 +116,11 @@ const News = () => {
         setLoading(true);
         setError(null);
         const response = await fetch(
-          `https://gnews.io/api/v4/search?q=${category}&lang=en&country=us&max=9&apikey=205b600b59b62d3da4b48da0414a68b3`
+          `https://gnews.io/api/v4/search?q=${category}&lang=en&country=us&max=9&apikey=${import.meta.env.VITE_GNEWS_API_KEY}`
         );
 
         if (!response.ok) throw new Error('Failed to fetch news');
-        
+
         const data = await response.json();
         if (data.articles) {
           setNews(data.articles);
@@ -143,7 +142,7 @@ const News = () => {
     <div className="min-h-screen pt-20 pb-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-12"
@@ -162,7 +161,7 @@ const News = () => {
           <p className="text-green-400 text-lg mb-8 max-w-2xl mx-auto">
             Stay updated with the latest farming news, trends, and innovations
           </p>
-          
+
           {/* Category Filters */}
           <div className="flex flex-wrap justify-center gap-3 mb-8">
             {categories.map((cat) => (
@@ -179,7 +178,7 @@ const News = () => {
 
         {/* Error Display */}
         {error && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="flex items-center justify-center p-4 mb-8 bg-red-900/20 rounded-xl"
@@ -203,8 +202,8 @@ const News = () => {
               [...Array(6)].map((_, i) => <LoadingCard key={i} />)
             ) : (
               news.map((article, index) => (
-                <NewsCard 
-                  key={article.url || index} 
+                <NewsCard
+                  key={article.url || index}
                   article={article}
                   index={index}
                 />
