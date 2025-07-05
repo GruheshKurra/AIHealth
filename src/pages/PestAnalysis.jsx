@@ -1,525 +1,631 @@
 import React, { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, ExternalLink } from 'lucide-react';
-
-import { 
-  Bug, Upload, Camera, AlertCircle, Loader2, 
-  Microscope, Shield, Sprout, Droplets, 
-  ThermometerSun, Timer, Skull, Ruler
-} from 'lucide-react';
-import { Toaster, toast } from 'sonner';
-
-const Progress = ({ value = 0, className = '' }) => {
-  return (
-    <div className={`w-full bg-green-900/50 rounded-full h-2.5 ${className}`}>
-      <div 
-        className="bg-green-500 h-2.5 rounded-full transition-all duration-300"
-        style={{ width: `${value}%` }}
-      />
-    </div>
-  );
-};
-
-const LoadingOverlay = ({ progress }) => (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    className="fixed inset-0 bg-green-950/50 backdrop-blur-sm flex items-center justify-center z-50"
-  >
-    <motion.div
-      initial={{ scale: 0.9 }}
-      animate={{ scale: 1 }}
-      className="bg-green-900/90 rounded-lg p-8 shadow-xl flex flex-col items-center max-w-md w-full mx-4"
-    >
-      <div className="relative mb-4">
-        <div className="w-16 h-16 rounded-full border-4 border-green-400/20">
-          <Loader2 className="w-16 h-16 text-green-400 animate-spin absolute inset-0" />
-        </div>
-      </div>
-      <p className="mt-4 text-lg font-medium text-green-100">Analyzing pest image...</p>
-      <p className="mt-2 text-sm text-green-400">This may take a few moments</p>
-      <div className="w-full mt-6">
-        <Progress value={progress} className="h-2" />
-        <p className="text-center mt-2 text-sm text-green-400">{progress}%</p>
-      </div>
-    </motion.div>
-  </motion.div>
-);
-
-const PestAnalysisResult = ({ data }) => {
-  const createAmazonSearchLink = (searchTerm) => {
-    const baseUrl = 'https://www.amazon.in/s';
-    const query = encodeURIComponent(`${searchTerm} pesticide insecticide`);
-    return `${baseUrl}?k=${query}`;
-  };
-
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="space-y-6"
-      >
-        {/* Pest Identification */}
-        <div className="bg-green-900/40 backdrop-blur-sm rounded-lg p-6 ring-1 ring-green-800/50">
-          <h2 className="text-xl font-semibold text-green-300 mb-6 flex items-center">
-            <Microscope className="w-6 h-6 mr-2" />
-            Pest Identification
-          </h2>
-          
-          <div className="space-y-4">
-            <div className="flex items-center space-x-3 text-green-200">
-              <Bug className="w-5 h-5 text-green-400" />
-              <span className="font-medium">{data.pestName || 'Unknown Pest'}</span>
-            </div>
-            
-            <div className="flex items-center space-x-3 text-green-200">
-              <Skull className="w-5 h-5 text-green-400" />
-              <span>Threat Level: {data.threatLevel || 'Unknown'}</span>
-            </div>
-            
-            {data.characteristics && (
-              <div className="space-y-2">
-                <h3 className="text-green-300 font-medium">Characteristics</h3>
-                <p className="text-green-100">{data.characteristics}</p>
-              </div>
-            )}
-            
-            {data.behavior && (
-              <div className="space-y-2">
-                <h3 className="text-green-300 font-medium">Behavior</h3>
-                <p className="text-green-100">{data.behavior}</p>
-              </div>
-            )}
-            
-            {data.lifeCycle && (
-              <div className="space-y-2">
-                <h3 className="text-green-300 font-medium">Life Cycle</h3>
-                <p className="text-green-100">{data.lifeCycle}</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Damage Assessment */}
-        <div className="bg-green-900/40 backdrop-blur-sm rounded-lg p-6 ring-1 ring-green-800/50">
-          <h2 className="text-xl font-semibold text-green-300 mb-6 flex items-center">
-            <Sprout className="w-6 h-6 mr-2" />
-            Damage Assessment
-          </h2>
-          
-          <div className="space-y-4">
-            {data.symptoms && data.symptoms.length > 0 && (
-              <div className="space-y-2">
-                <h3 className="text-green-300 font-medium">Symptoms</h3>
-                <ul className="list-disc list-inside text-green-100 space-y-2">
-                  {data.symptoms.map((symptom, index) => (
-                    <li key={index}>{symptom}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            {data.affectedParts && (
-              <div className="space-y-2">
-                <h3 className="text-green-300 font-medium">Affected Plant Parts</h3>
-                <p className="text-green-100">{data.affectedParts}</p>
-              </div>
-            )}
-            
-            {data.spreadPattern && (
-              <div className="space-y-2">
-                <h3 className="text-green-300 font-medium">Spread Pattern</h3>
-                <p className="text-green-100">{data.spreadPattern}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="space-y-6"
-      >
-        {/* Treatment Options */}
-        {data.treatments && data.treatments.length > 0 && (
-          <div className="bg-green-900/40 backdrop-blur-sm rounded-lg p-6 ring-1 ring-green-800/50">
-            <h2 className="text-xl font-semibold text-green-300 mb-6 flex items-center">
-              <Shield className="w-6 h-6 mr-2" />
-              Treatment Options
-            </h2>
-            
-            <div className="space-y-6">
-              {data.treatments.map((treatment, index) => (
-                <div key={index} className="bg-green-800/20 rounded-lg p-4">
-                  <h3 className="text-green-300 font-medium mb-2">{treatment.name}</h3>
-                  <div className="space-y-3">
-                    <p className="text-green-100">{treatment.description}</p>
-                    
-                    <div className="flex items-center space-x-2 text-green-200">
-                      <Droplets className="w-4 h-4" />
-                      <span>Dosage: {treatment.dosage}</span>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2 text-green-200">
-                      <Timer className="w-4 h-4" />
-                      <span>Frequency: {treatment.frequency}</span>
-                    </div>
-                    
-                    {treatment.precautions && (
-                      <div className="bg-yellow-900/20 rounded p-3">
-                        <div className="flex items-center space-x-2 text-yellow-300">
-                          <AlertCircle className="w-4 h-4" />
-                          <span className="font-medium">Precautions</span>
-                        </div>
-                        <p className="text-yellow-200 text-sm mt-1">{treatment.precautions}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Prevention Measures */}
-        <div className="bg-green-900/40 backdrop-blur-sm rounded-lg p-6 ring-1 ring-green-800/50">
-          <h2 className="text-xl font-semibold text-green-300 mb-6 flex items-center">
-            <ThermometerSun className="w-6 h-6 mr-2" />
-            Prevention & Control
-          </h2>
-          
-          <div className="space-y-4">
-            {data.preventionMeasures && data.preventionMeasures.length > 0 && (
-              <div>
-                <h3 className="text-green-300 font-medium mb-2">Prevention Measures</h3>
-                <ul className="list-disc list-inside text-green-100 space-y-2">
-                  {data.preventionMeasures.map((measure, index) => (
-                    <li key={index}>{measure}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            {data.naturalEnemies && data.naturalEnemies.length > 0 && (
-              <div className="mt-4">
-                <h3 className="text-green-300 font-medium mb-2">Natural Enemies</h3>
-                <ul className="list-disc list-inside text-green-100 space-y-2">
-                  {data.naturalEnemies.map((enemy, index) => (
-                    <li key={index}>{enemy}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Recommended Products */}
-        <div className="bg-green-900/40 backdrop-blur-sm rounded-lg p-6 ring-1 ring-green-800/50">
-          <h2 className="text-xl font-semibold text-green-300 mb-6 flex items-center">
-            <ShoppingBag className="w-6 h-6 mr-2" />
-            Recommended Products
-          </h2>
-          
-          <div className="space-y-4">
-            {data.recommendedProducts && data.recommendedProducts.length > 0 ? (
-              data.recommendedProducts.map((product, index) => (
-                <div key={index} className="bg-green-800/20 rounded-lg p-4 hover:bg-green-800/30 transition-colors">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-green-300 font-medium">{product.name}</h3>
-                      <p className="text-green-400 mt-1">Category: {product.category || 'Pesticide'}</p>
-                      <p className="text-green-200 text-sm mt-1">Type: {product.type || 'General Purpose'}</p>
-                    </div>
-                    <a
-                      href={createAmazonSearchLink(product.name)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center space-x-1 bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg transition-colors"
-                    >
-                      <ShoppingBag className="w-4 h-4" />
-                      <span>Search on Amazon</span>
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="bg-green-800/20 rounded-lg p-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-green-300 font-medium">General Treatment Products</h3>
-                    <p className="text-green-200 text-sm mt-1">Search for pest control products</p>
-                  </div>
-                  <a
-                    href={createAmazonSearchLink(data.pestName || 'pest control')}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center space-x-1 bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg transition-colors"
-                  >
-                    <ShoppingBag className="w-4 h-4" />
-                    <span>Search on Amazon</span>
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </motion.div>
-    </div>
-  );
-};
-
-const ImageUploader = ({ onImageSelect, isLoading }) => {
-  const fileInputRef = useRef(null);
-  const [previewImage, setPreviewImage] = useState(null);
-
-  const handleFileSelect = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select a valid image file');
-        return;
-      }
-      setPreviewImage(URL.createObjectURL(file));
-      onImageSelect(event);
-    }
-  };
-
-  return (
-    <div className="bg-green-900/40 backdrop-blur-sm rounded-lg p-8 text-center">
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileSelect}
-        accept="image/*"
-        className="hidden"
-        disabled={isLoading}
-      />
-      
-      <div className="max-w-xl mx-auto">
-        {previewImage ? (
-          <div className="relative mb-6">
-            <img
-              src={previewImage}
-              alt="Selected"
-              className="max-h-64 mx-auto rounded-lg object-contain"
-            />
-            {isLoading && (
-              <div className="absolute inset-0 bg-green-950/50 rounded-lg flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-green-400 animate-spin" />
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center">
-            <Bug className="w-16 h-16 text-green-400 mb-4" />
-            <h2 className="text-2xl font-bold text-green-300 mb-2">
-              Pest Identification
-            </h2>
-            <p className="text-green-200 mb-6">
-              Upload a clear image of the pest or affected plant part for analysis
-            </p>
-          </div>
-        )}
-        
-        <div className="flex flex-col sm:flex-row gap-4 mb-6 justify-center">
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isLoading}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-500 transition-colors disabled:opacity-50"
-          >
-            <Upload className="w-5 h-5" />
-            <span>{previewImage ? 'Change Image' : 'Upload Image'}</span>
-          </button>
-          
-          <button
-            onClick={() => toast.info('Camera feature coming soon!')}
-            disabled={isLoading}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-green-700 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
-          >
-            <Camera className="w-5 h-5" />
-            <span>Take Photo</span>
-          </button>
-        </div>
-        
-        <p className="text-sm text-green-400">
-          Supports JPG, PNG or JPEG (max 10MB)
-        </p>
-      </div>
-    </div>
-  );
-};
+import { Upload, Loader2, Camera, AlertCircle, Bug, Shield, Droplets, Sun, Settings, Microscope, Skull, Timer } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const PestAnalysis = () => {
-  const [isLoading, setIsLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState(null);
-  const [progress, setProgress] = useState(0);
+  const [apiProvider, setApiProvider] = useState('gemini');
+  const [selectedModel, setSelectedModel] = useState('google/gemini-2.0-flash-exp:free');
+  const [showCamera, setShowCamera] = useState(false);
+  const fileInputRef = useRef(null);
+  const videoRef = useRef(null);
+  const [cameraStream, setCameraStream] = useState(null);
 
-  const analyzePest = async (imageFile) => {
-    if (!imageFile) {
-      toast.error('Please select an image file');
-      return;
+  const openRouterModels = [
+    { id: 'google/gemini-2.0-flash-exp:free', name: 'Gemini 2.0 Flash Experimental' },
+    { id: 'qwen/qwen2.5-vl-72b-instruct:free', name: 'Qwen2.5 VL 72B' },
+    { id: 'meta-llama/llama-3.2-11b-vision-instruct:free', name: 'Llama 3.2 11B Vision' },
+    { id: 'qwen/qwen2.5-vl-32b-instruct:free', name: 'Qwen2.5 VL 32B' },
+    { id: 'moonshotai/kimi-vl-a3b-thinking:free', name: 'Kimi VL A3B Thinking' },
+    { id: 'google/gemma-3-27b-it:free', name: 'Gemma 3 27B' },
+    { id: 'google/gemma-3-12b-it:free', name: 'Gemma 3 12B' },
+    { id: 'mistralai/mistral-small-3.2-24b-instruct:free', name: 'Mistral Small 3.2 24B' }
+  ];
+
+  const analyzeWithGemini = async (imageBase64) => {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            {
+              text: `Analyze this image for pest identification and provide a comprehensive assessment. Please structure your response as follows:
+
+**Pest Identification:**
+- Pest name/species (if identifiable)
+- Common name and scientific name
+- Pest category (insect, mite, nematode, etc.)
+- Life stage visible (egg, larva, adult, etc.)
+
+**Physical Characteristics:**
+- Size and appearance
+- Color and markings
+- Body structure
+- Distinctive features
+
+**Threat Assessment:**
+- Threat level (Low/Moderate/High/Severe)
+- Confidence level (%)
+- Potential damage severity
+- Economic impact
+
+**Damage Analysis:**
+- Type of damage caused
+- Affected plant parts
+- Feeding behavior
+- Damage symptoms to look for
+
+**Host Plants:**
+- Primary host plants
+- Secondary host plants
+- Crop preferences
+- Seasonal preferences
+
+**Life Cycle & Behavior:**
+- Life cycle duration
+- Breeding patterns
+- Activity periods
+- Environmental preferences
+
+**Control Methods:**
+- Immediate action needed
+- Biological control options
+- Chemical control recommendations
+- Organic/natural treatments
+- IPM (Integrated Pest Management) approach
+
+**Prevention Strategies:**
+- Cultural practices
+- Monitoring techniques
+- Early detection methods
+- Resistant varieties
+- Environmental management
+
+**Treatment Recommendations:**
+- Specific pesticides/insecticides
+- Application methods
+- Dosage and frequency
+- Safety precautions
+- Re-application schedule
+
+Please be specific and practical in your recommendations. If you're uncertain about identification, please mention alternative possibilities and confidence levels.`
+            },
+            {
+              inline_data: {
+                mime_type: "image/jpeg",
+                data: imageBase64
+              }
+            }
+          ]
+        }]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Gemini API error: ${response.status}`);
     }
 
-    setIsLoading(true);
+    const data = await response.json();
+    return data.candidates[0].content.parts[0].text;
+  };
+
+  const analyzeWithOpenRouter = async (imageBase64) => {
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: selectedModel,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: `Analyze this image for pest identification and provide a comprehensive assessment. Please structure your response as follows:
+
+**Pest Identification:**
+- Pest name/species (if identifiable)
+- Common name and scientific name
+- Pest category (insect, mite, nematode, etc.)
+- Life stage visible (egg, larva, adult, etc.)
+
+**Physical Characteristics:**
+- Size and appearance
+- Color and markings
+- Body structure
+- Distinctive features
+
+**Threat Assessment:**
+- Threat level (Low/Moderate/High/Severe)
+- Confidence level (%)
+- Potential damage severity
+- Economic impact
+
+**Damage Analysis:**
+- Type of damage caused
+- Affected plant parts
+- Feeding behavior
+- Damage symptoms to look for
+
+**Host Plants:**
+- Primary host plants
+- Secondary host plants
+- Crop preferences
+- Seasonal preferences
+
+**Life Cycle & Behavior:**
+- Life cycle duration
+- Breeding patterns
+- Activity periods
+- Environmental preferences
+
+**Control Methods:**
+- Immediate action needed
+- Biological control options
+- Chemical control recommendations
+- Organic/natural treatments
+- IPM (Integrated Pest Management) approach
+
+**Prevention Strategies:**
+- Cultural practices
+- Monitoring techniques
+- Early detection methods
+- Resistant varieties
+- Environmental management
+
+**Treatment Recommendations:**
+- Specific pesticides/insecticides
+- Application methods
+- Dosage and frequency
+- Safety precautions
+- Re-application schedule
+
+Please be specific and practical in your recommendations. If you're uncertain about identification, please mention alternative possibilities and confidence levels.`
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: `data:image/jpeg;base64,${imageBase64}`
+                  }
+                }
+              ]
+            }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenRouter API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.choices[0].message.content;
+    } catch (error) {
+      throw new Error(`OpenRouter analysis failed: ${error.message}`);
+    }
+  };
+
+  const analyzeImage = async () => {
+    if (!selectedImage) return;
+
+    setIsAnalyzing(true);
     setError(null);
-    setProgress(0);
+    setAnalysisResult(null);
 
     try {
       const reader = new FileReader();
-      reader.onload = async () => {
+      reader.onload = async (e) => {
+        const base64 = e.target.result.split(',')[1];
+
         try {
-          setProgress(20);
-          toast.info('Processing image...');
-          const base64Image = reader.result.split(',')[1];
-          
-          setProgress(40);
-          const prompt = `Analyze this pest image and provide detailed pest analysis in the following JSON format:
-
-{
-  "pestName": "Detailed pest name (common and scientific)",
-  "threatLevel": "Low/Medium/High",
-  "characteristics": "Detailed physical description",
-  "behavior": "Pest behavior patterns",
-  "lifeCycle": "Life cycle information",
-  "symptoms": ["List of damage symptoms"],
-  "affectedParts": "Plant parts affected",
-  "spreadPattern": "How the pest spreads",
-  "treatments": [
-    {
-      "name": "Treatment method name",
-      "description": "Treatment description",
-      "dosage": "Application dosage",
-      "frequency": "Application frequency",
-      "precautions": "Safety precautions"
-    }
-  ],
-  "preventionMeasures": ["List of prevention measures"],
-  "naturalEnemies": ["List of natural predators"],
-  "recommendedProducts": [
-    {
-      "name": "Specific pesticide product name",
-      "category": "Type of pesticide (e.g., Insecticide, Fungicide)",
-      "type": "Usage type (e.g., Contact, Systemic)"
-    }
-  ]
-}
-
-Important:
-- Provide comprehensive pest identification and analysis
-- Include detailed treatment and prevention information
-- Recommend 3-4 specific pesticide products
-- Include both chemical and organic options if available
-- Focus on products commonly available in India
-- Ensure product names are specific and searchable`;
-
-          setProgress(60);
-          toast.info('Analyzing pest characteristics...');
-
-          const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [{
-                  role: "user",
-                  parts: [
-                    { text: prompt },
-                    { inlineData: { mimeType: imageFile.type, data: base64Image } }
-                  ]
-                }],
-                generationConfig: {
-                  temperature: 0.4,
-                  topK: 32,
-                  topP: 1,
-                  maxOutputTokens: 2048
-                }
-              })
-            }
-          );
-
-          if (!response.ok) throw new Error('Failed to analyze image');
-
-          setProgress(80);
-          toast.info('Generating analysis report...');
-
-          const data = await response.json();
-          const analysisText = data.candidates[0]?.content?.parts[0]?.text || '';
-          
-          try {
-            const jsonStart = analysisText.indexOf('{');
-            const jsonEnd = analysisText.lastIndexOf('}') + 1;
-            const jsonStr = analysisText.slice(jsonStart, jsonEnd);
-            const analysisData = JSON.parse(jsonStr);
-            setAnalysisResult(analysisData);
-            setProgress(100);
-            toast.success('Analysis complete!');
-          } catch (parseError) {
-            throw new Error('Failed to parse analysis results');
+          let result;
+          if (apiProvider === 'gemini') {
+            result = await analyzeWithGemini(base64);
+          } else {
+            result = await analyzeWithOpenRouter(base64);
           }
 
-        } catch (err) {
-          throw new Error('Failed to analyze the image');
+          setAnalysisResult(result);
+        } catch (error) {
+          console.error('Analysis error:', error);
+          setError(`Analysis failed: ${error.message}`);
+        } finally {
+          setIsAnalyzing(false);
         }
       };
-
-      reader.onerror = () => {
-        throw new Error('Failed to read the image file');
-      };
-
-      reader.readAsDataURL(imageFile);
-
-    } catch (err) {
-      setError(err.message);
-      toast.error(err.message);
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setProgress(0), 1000);
+      reader.readAsDataURL(selectedImage);
+    } catch (error) {
+      console.error('Image processing error:', error);
+      setError('Failed to process image');
+      setIsAnalyzing(false);
     }
   };
 
-  const handleImageSelect = (event) => {
+  const handleImageUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select a valid image file');
+      if (file.size > 10 * 1024 * 1024) {
+        setError('Image size should be less than 10MB');
         return;
       }
-      setSelectedImage(URL.createObjectURL(file));
-      analyzePest(file);
+
+      setSelectedImage(file);
+      setImagePreview(URL.createObjectURL(file));
+      setError(null);
     }
+  };
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+      setCameraStream(stream);
+      setShowCamera(true);
+
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      }, 100);
+    } catch (error) {
+      setError('Camera access denied or not available');
+    }
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current) return;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+
+    const context = canvas.getContext('2d');
+    context.drawImage(videoRef.current, 0, 0);
+
+    canvas.toBlob(blob => {
+      const file = new File([blob], 'pest-photo.jpg', { type: 'image/jpeg' });
+      setSelectedImage(file);
+      setImagePreview(URL.createObjectURL(file));
+      stopCamera();
+    }, 'image/jpeg', 0.8);
+  };
+
+  const stopCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+    setShowCamera(false);
+  };
+
+  const resetAnalysis = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    setAnalysisResult(null);
+    setError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const MarkdownRenderer = ({ content }) => {
+    return (
+      <div className="prose prose-invert prose-green max-w-none">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            h1: ({ children }) => <h1 className="text-2xl font-bold text-green-200 mb-4">{children}</h1>,
+            h2: ({ children }) => <h2 className="text-xl font-bold text-green-300 mb-3 mt-6">{children}</h2>,
+            h3: ({ children }) => <h3 className="text-lg font-semibold text-green-300 mb-2 mt-4">{children}</h3>,
+            p: ({ children }) => <p className="text-green-100 mb-3 leading-relaxed">{children}</p>,
+            ul: ({ children }) => <ul className="list-none space-y-2 mb-4">{children}</ul>,
+            ol: ({ children }) => <ol className="list-decimal list-inside space-y-2 mb-4 text-green-100">{children}</ol>,
+            li: ({ children }) => (
+              <li className="text-green-100 flex items-start">
+                <span className="text-green-400 mr-2">•</span>
+                <span>{children}</span>
+              </li>
+            ),
+            strong: ({ children }) => <strong className="text-green-200 font-semibold">{children}</strong>,
+            em: ({ children }) => <em className="text-green-300 italic">{children}</em>,
+            code: ({ children }) => (
+              <code className="bg-green-800/30 text-green-200 px-2 py-1 rounded text-sm">{children}</code>
+            ),
+            pre: ({ children }) => (
+              <pre className="bg-green-800/20 text-green-100 p-4 rounded-lg overflow-x-auto mb-4">{children}</pre>
+            ),
+            blockquote: ({ children }) => (
+              <blockquote className="border-l-4 border-green-500 pl-4 italic text-green-200 mb-4">{children}</blockquote>
+            ),
+            table: ({ children }) => (
+              <div className="overflow-x-auto mb-4">
+                <table className="min-w-full border border-green-700">{children}</table>
+              </div>
+            ),
+            thead: ({ children }) => <thead className="bg-green-800/30">{children}</thead>,
+            th: ({ children }) => (
+              <th className="border border-green-700 px-4 py-2 text-left text-green-200 font-semibold">{children}</th>
+            ),
+            td: ({ children }) => (
+              <td className="border border-green-700 px-4 py-2 text-green-100">{children}</td>
+            ),
+            hr: () => <hr className="border-green-700 my-6" />,
+            a: ({ href, children }) => (
+              <a href={href} className="text-green-400 hover:text-green-300 underline" target="_blank" rel="noopener noreferrer">
+                {children}
+              </a>
+            )
+          }}
+        >
+          {content}
+        </ReactMarkdown>
+      </div>
+    );
   };
 
   return (
-    <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
-      <Toaster position="top-right" richColors closeButton />
-      
-      <AnimatePresence>
-        {isLoading && <LoadingOverlay progress={progress} />}
-      </AnimatePresence>
-      
-      <div className="max-w-7xl mx-auto space-y-8">
-        <ImageUploader onImageSelect={handleImageSelect} isLoading={isLoading} />
+    <div className="min-h-screen py-12 px-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-green-100 mb-4">Pest Identification & Analysis</h1>
+          <p className="text-green-200 text-lg">Upload a pest photo for AI-powered identification and control recommendations</p>
+        </div>
 
-        {error && (
-          <div className="flex items-center justify-center">
-            <div className="bg-red-900/20 text-red-400 px-4 py-3 rounded-lg flex items-center">
-              <AlertCircle className="w-5 h-5 mr-2" />
-              {error}
+        {/* API Provider Selector */}
+        <div className="bg-green-900/40 rounded-lg p-6 mb-8 ring-1 ring-green-800/50">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="flex items-center space-x-4">
+              <Settings className="w-5 h-5 text-green-400" />
+              <label className="text-green-200 font-medium">AI Provider:</label>
+              <select
+                value={apiProvider}
+                onChange={(e) => setApiProvider(e.target.value)}
+                className="px-4 py-2 rounded-lg bg-green-800/20 border border-green-800/50 text-green-100 focus:ring-2 focus:ring-green-500"
+              >
+                <option value="gemini">Google Gemini</option>
+                <option value="openrouter">OpenRouter</option>
+              </select>
+            </div>
+
+            {apiProvider === 'openrouter' && (
+              <div className="flex items-center space-x-4">
+                <label className="text-green-200 font-medium">Model:</label>
+                <select
+                  value={selectedModel}
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  className="px-4 py-2 rounded-lg bg-green-800/20 border border-green-800/50 text-green-100 focus:ring-2 focus:ring-green-500"
+                >
+                  {openRouterModels.map(model => (
+                    <option key={model.id} value={model.id}>{model.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 text-center">
+            <span className="text-green-300 text-sm">
+              {apiProvider === 'gemini' ?
+                '🔬 Gemini 1.5 Flash - Optimized for pest identification' :
+                `🚀 ${openRouterModels.find(m => m.id === selectedModel)?.name} - Free vision model`
+              }
+            </span>
+          </div>
+        </div>
+
+        {/* Camera Modal */}
+        {showCamera && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+            <div className="bg-green-900/90 rounded-lg p-6 max-w-2xl w-full">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-green-100">Capture Pest Photo</h3>
+                <button
+                  onClick={stopCamera}
+                  className="text-green-400 hover:text-green-300 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="relative bg-black rounded-lg overflow-hidden mb-4">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  className="w-full h-64 object-cover"
+                />
+              </div>
+
+              <div className="flex justify-center space-x-4">
+                <button
+                  onClick={capturePhoto}
+                  className="flex items-center space-x-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-500 transition-colors"
+                >
+                  <Camera className="w-5 h-5" />
+                  <span>Capture Photo</span>
+                </button>
+                <button
+                  onClick={stopCamera}
+                  className="flex items-center space-x-2 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-500 transition-colors"
+                >
+                  <span>Cancel</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
 
-        {analysisResult && !isLoading && (
-          <PestAnalysisResult data={analysisResult} />
+        {/* Upload Section */}
+        <div className="bg-green-900/40 rounded-lg p-6 mb-8 ring-1 ring-green-800/50">
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Upload Area */}
+            <div>
+              <h3 className="text-xl font-semibold text-green-100 mb-4">Upload Pest Image</h3>
+
+              <div className="border-2 border-dashed border-green-800/50 rounded-lg p-8 text-center">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+
+                <div className="space-y-4">
+                  <div className="flex justify-center">
+                    <Upload className="w-12 h-12 text-green-400" />
+                  </div>
+
+                  <div>
+                    <p className="text-green-200 mb-2">Upload or capture a pest photo</p>
+                    <p className="text-green-400 text-sm">Supports JPG, PNG (max 10MB)</p>
+                  </div>
+
+                  <div className="flex justify-center space-x-4">
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-500 transition-colors"
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>Upload Image</span>
+                    </button>
+
+                    <button
+                      onClick={startCamera}
+                      className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-500 transition-colors"
+                    >
+                      <Camera className="w-4 h-4" />
+                      <span>Use Camera</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Image Preview */}
+            <div>
+              <h3 className="text-xl font-semibold text-green-100 mb-4">Image Preview</h3>
+
+              <div className="bg-green-800/20 rounded-lg p-4 h-64 flex items-center justify-center">
+                {imagePreview ? (
+                  <img
+                    src={imagePreview}
+                    alt="Pest preview"
+                    className="max-w-full max-h-full object-contain rounded-lg"
+                  />
+                ) : (
+                  <div className="text-center text-green-400">
+                    <Bug className="w-12 h-12 mx-auto mb-2" />
+                    <p>No image selected</p>
+                  </div>
+                )}
+              </div>
+
+              {selectedImage && (
+                <div className="mt-4 space-y-2">
+                  <button
+                    onClick={analyzeImage}
+                    disabled={isAnalyzing}
+                    className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-500 transition-colors disabled:opacity-50 flex items-center justify-center"
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Bug className="w-5 h-5 mr-2" />
+                        Identify Pest
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={resetAnalysis}
+                    className="w-full bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-500 transition-colors"
+                  >
+                    Reset
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-900/40 rounded-lg p-4 mb-8 ring-1 ring-red-800/50">
+            <div className="flex items-center space-x-2">
+              <AlertCircle className="w-5 h-5 text-red-400" />
+              <p className="text-red-200">{error}</p>
+            </div>
+          </div>
         )}
+
+        {/* Analysis Results */}
+        {analysisResult && (
+          <div className="bg-green-900/40 rounded-lg p-6 ring-1 ring-green-800/50">
+            <div className="flex items-center space-x-2 mb-4">
+              <Bug className="w-6 h-6 text-green-400" />
+              <h3 className="text-2xl font-bold text-green-100">Pest Analysis Results</h3>
+            </div>
+
+            <div className="bg-green-800/20 rounded-lg p-6">
+              <MarkdownRenderer content={analysisResult} />
+            </div>
+
+            <div className="mt-4 flex justify-center">
+              <span className="text-green-300 text-sm">
+                Powered by {apiProvider === 'gemini' ?
+                  'Google Gemini 1.5 Flash' :
+                  `OpenRouter - ${openRouterModels.find(m => m.id === selectedModel)?.name}`
+                }
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Features Info */}
+        <div className="mt-8 grid md:grid-cols-4 gap-4">
+          <div className="bg-green-900/40 rounded-lg p-4 ring-1 ring-green-800/50 text-center">
+            <Microscope className="w-8 h-8 text-green-400 mx-auto mb-2" />
+            <h4 className="text-green-200 font-medium">Pest Identification</h4>
+            <p className="text-green-300 text-sm">Identify pest species</p>
+          </div>
+
+          <div className="bg-green-900/40 rounded-lg p-4 ring-1 ring-green-800/50 text-center">
+            <Skull className="w-8 h-8 text-green-400 mx-auto mb-2" />
+            <h4 className="text-green-200 font-medium">Threat Assessment</h4>
+            <p className="text-green-300 text-sm">Evaluate damage potential</p>
+          </div>
+
+          <div className="bg-green-900/40 rounded-lg p-4 ring-1 ring-green-800/50 text-center">
+            <Shield className="w-8 h-8 text-green-400 mx-auto mb-2" />
+            <h4 className="text-green-200 font-medium">Control Methods</h4>
+            <p className="text-green-300 text-sm">Treatment recommendations</p>
+          </div>
+
+          <div className="bg-green-900/40 rounded-lg p-4 ring-1 ring-green-800/50 text-center">
+            <Timer className="w-8 h-8 text-green-400 mx-auto mb-2" />
+            <h4 className="text-green-200 font-medium">Prevention Tips</h4>
+            <p className="text-green-300 text-sm">Avoid future infestations</p>
+          </div>
+        </div>
       </div>
     </div>
   );

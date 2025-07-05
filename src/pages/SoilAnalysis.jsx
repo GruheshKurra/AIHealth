@@ -1,14 +1,9 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  FlaskConical, Loader2, AlertCircle, 
-  Leaf, Droplets, ThermometerSun, 
-  Sprout, ArrowRight, ChevronDown,
-  Dna, Microscope, Scale
-} from 'lucide-react';
-import { Toaster, toast } from 'sonner';
+import { FlaskConical, Loader2, AlertCircle, Leaf, Droplets, ThermometerSun, Sprout, Settings, Scale, Dna, Microscope } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
-const SoilForm = ({ onSubmit, isLoading }) => {
+const SoilAnalysis = () => {
   const [formData, setFormData] = useState({
     pH: '',
     nitrogen: '',
@@ -17,435 +12,658 @@ const SoilForm = ({ onSubmit, isLoading }) => {
     organicMatter: '',
     texture: '',
     moisture: '',
-    conductivity: ''
+    conductivity: '',
+    location: '',
+    cropType: ''
   });
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [apiProvider, setApiProvider] = useState('gemini');
+  const [selectedModel, setSelectedModel] = useState('google/gemini-2.0-flash-exp:free');
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (Object.values(formData).some(value => value === '')) {
-      toast.error('Please fill all fields');
-      return;
+  const openRouterModels = [
+    { id: 'google/gemini-2.0-flash-exp:free', name: 'Gemini 2.0 Flash Experimental' },
+    { id: 'qwen/qwen2.5-vl-72b-instruct:free', name: 'Qwen2.5 VL 72B' },
+    { id: 'meta-llama/llama-3.2-11b-vision-instruct:free', name: 'Llama 3.2 11B Vision' },
+    { id: 'qwen/qwen2.5-vl-32b-instruct:free', name: 'Qwen2.5 VL 32B' },
+    { id: 'moonshotai/kimi-vl-a3b-thinking:free', name: 'Kimi VL A3B Thinking' },
+    { id: 'google/gemma-3-27b-it:free', name: 'Gemma 3 27B' },
+    { id: 'google/gemma-3-12b-it:free', name: 'Gemma 3 12B' },
+    { id: 'mistralai/mistral-small-3.2-24b-instruct:free', name: 'Mistral Small 3.2 24B' }
+  ];
+
+  const analyzeWithGemini = async (soilData) => {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: `Analyze this soil data and provide a comprehensive soil health assessment. Please structure your response as follows:
+
+**Soil Health Summary:**
+- Overall soil health rating (Excellent/Good/Fair/Poor)
+- Key strengths and weaknesses
+- Soil fertility status
+- Overall recommendations
+
+**Detailed Analysis:**
+
+**pH Analysis:**
+- Current pH level interpretation
+- Impact on nutrient availability
+- Specific recommendations for pH adjustment
+- Suitable amendments (lime, sulfur, etc.)
+
+**Nutrient Analysis:**
+- Nitrogen (N) status and recommendations
+- Phosphorus (P) status and recommendations  
+- Potassium (K) status and recommendations
+- Secondary and micronutrient considerations
+- Fertilizer recommendations with specific NPK ratios
+
+**Organic Matter Assessment:**
+- Current organic matter status
+- Impact on soil structure and fertility
+- Recommendations for improvement
+- Composting and organic amendment suggestions
+
+**Physical Properties:**
+- Soil texture analysis and implications
+- Moisture retention characteristics
+- Drainage and aeration assessment
+- Tillage and cultivation recommendations
+
+**Salinity Assessment:**
+- Electrical conductivity interpretation
+- Salt stress implications for crops
+- Management strategies for saline soils
+- Irrigation and drainage recommendations
+
+**Crop Suitability:**
+- Most suitable crops for current soil conditions
+- Crops to avoid with current soil status
+- Crop rotation recommendations
+- Specific varieties recommended for soil type
+
+**Fertilizer Program:**
+- Immediate fertilizer needs
+- Seasonal fertilizer schedule
+- Organic vs synthetic fertilizer options
+- Application methods and timing
+
+**Soil Improvement Plan:**
+- Short-term improvements (1-6 months)
+- Medium-term improvements (6-12 months)
+- Long-term soil building strategies (1-3 years)
+- Monitoring and testing schedule
+
+**Management Practices:**
+- Irrigation management
+- Tillage practices
+- Cover crop recommendations
+- Mulching strategies
+- Erosion control measures
+
+**Economic Considerations:**
+- Cost-effective improvement strategies
+- Expected yield improvements
+- Return on investment for amendments
+- Budget-friendly alternatives
+
+Soil Data:
+- pH: ${soilData.pH}
+- Nitrogen: ${soilData.nitrogen} mg/kg
+- Phosphorus: ${soilData.phosphorus} mg/kg
+- Potassium: ${soilData.potassium} mg/kg
+- Organic Matter: ${soilData.organicMatter}%
+- Soil Texture: ${soilData.texture}
+- Moisture: ${soilData.moisture}%
+- Electrical Conductivity: ${soilData.conductivity} dS/m
+- Location: ${soilData.location}
+- Intended Crop: ${soilData.cropType}
+
+Please provide specific, actionable recommendations based on these soil parameters. Include both immediate actions and long-term soil health strategies.`
+          }]
+        }]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Gemini API error: ${response.status}`);
     }
-    onSubmit(formData);
+
+    const data = await response.json();
+    return data.candidates[0].content.parts[0].text;
   };
 
-  const handleChange = (e) => {
+  const analyzeWithOpenRouter = async (soilData) => {
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: selectedModel,
+          messages: [
+            {
+              role: 'user',
+              content: `Analyze this soil data and provide a comprehensive soil health assessment. Please structure your response as follows:
+
+**Soil Health Summary:**
+- Overall soil health rating (Excellent/Good/Fair/Poor)
+- Key strengths and weaknesses
+- Soil fertility status
+- Overall recommendations
+
+**Detailed Analysis:**
+
+**pH Analysis:**
+- Current pH level interpretation
+- Impact on nutrient availability
+- Specific recommendations for pH adjustment
+- Suitable amendments (lime, sulfur, etc.)
+
+**Nutrient Analysis:**
+- Nitrogen (N) status and recommendations
+- Phosphorus (P) status and recommendations  
+- Potassium (K) status and recommendations
+- Secondary and micronutrient considerations
+- Fertilizer recommendations with specific NPK ratios
+
+**Organic Matter Assessment:**
+- Current organic matter status
+- Impact on soil structure and fertility
+- Recommendations for improvement
+- Composting and organic amendment suggestions
+
+**Physical Properties:**
+- Soil texture analysis and implications
+- Moisture retention characteristics
+- Drainage and aeration assessment
+- Tillage and cultivation recommendations
+
+**Salinity Assessment:**
+- Electrical conductivity interpretation
+- Salt stress implications for crops
+- Management strategies for saline soils
+- Irrigation and drainage recommendations
+
+**Crop Suitability:**
+- Most suitable crops for current soil conditions
+- Crops to avoid with current soil status
+- Crop rotation recommendations
+- Specific varieties recommended for soil type
+
+**Fertilizer Program:**
+- Immediate fertilizer needs
+- Seasonal fertilizer schedule
+- Organic vs synthetic fertilizer options
+- Application methods and timing
+
+**Soil Improvement Plan:**
+- Short-term improvements (1-6 months)
+- Medium-term improvements (6-12 months)
+- Long-term soil building strategies (1-3 years)
+- Monitoring and testing schedule
+
+**Management Practices:**
+- Irrigation management
+- Tillage practices
+- Cover crop recommendations
+- Mulching strategies
+- Erosion control measures
+
+**Economic Considerations:**
+- Cost-effective improvement strategies
+- Expected yield improvements
+- Return on investment for amendments
+- Budget-friendly alternatives
+
+Soil Data:
+- pH: ${soilData.pH}
+- Nitrogen: ${soilData.nitrogen} mg/kg
+- Phosphorus: ${soilData.phosphorus} mg/kg
+- Potassium: ${soilData.potassium} mg/kg
+- Organic Matter: ${soilData.organicMatter}%
+- Soil Texture: ${soilData.texture}
+- Moisture: ${soilData.moisture}%
+- Electrical Conductivity: ${soilData.conductivity} dS/m
+- Location: ${soilData.location}
+- Intended Crop: ${soilData.cropType}
+
+Please provide specific, actionable recommendations based on these soil parameters. Include both immediate actions and long-term soil health strategies.`
+            }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenRouter API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.choices[0].message.content;
+    } catch (error) {
+      throw new Error(`OpenRouter analysis failed: ${error.message}`);
+    }
+  };
+
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid md:grid-cols-2 gap-6">
-        <div>
-          <label className="text-green-200 text-sm block mb-2">pH Level</label>
-          <input
-            type="number"
-            name="pH"
-            step="0.1"
-            min="0"
-            max="14"
-            value={formData.pH}
-            onChange={handleChange}
-            placeholder="e.g., 6.5"
-            className="w-full px-4 py-2 bg-green-900/40 rounded-lg border border-green-700 text-green-100 placeholder-green-500"
-          />
-        </div>
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-        <div>
-          <label className="text-green-200 text-sm block mb-2">Nitrogen Content (mg/kg)</label>
-          <input
-            type="number"
-            name="nitrogen"
-            value={formData.nitrogen}
-            onChange={handleChange}
-            placeholder="e.g., 140"
-            className="w-full px-4 py-2 bg-green-900/40 rounded-lg border border-green-700 text-green-100 placeholder-green-500"
-          />
-        </div>
+    // Validate required fields
+    const requiredFields = ['pH', 'nitrogen', 'phosphorus', 'potassium', 'organicMatter', 'texture', 'moisture', 'conductivity'];
+    const missingFields = requiredFields.filter(field => !formData[field]);
 
-        <div>
-          <label className="text-green-200 text-sm block mb-2">Phosphorus Content (mg/kg)</label>
-          <input
-            type="number"
-            name="phosphorus"
-            value={formData.phosphorus}
-            onChange={handleChange}
-            placeholder="e.g., 22"
-            className="w-full px-4 py-2 bg-green-900/40 rounded-lg border border-green-700 text-green-100 placeholder-green-500"
-          />
-        </div>
+    if (missingFields.length > 0) {
+      setError(`Please fill in all required fields: ${missingFields.join(', ')}`);
+      return;
+    }
 
-        <div>
-          <label className="text-green-200 text-sm block mb-2">Potassium Content (mg/kg)</label>
-          <input
-            type="number"
-            name="potassium"
-            value={formData.potassium}
-            onChange={handleChange}
-            placeholder="e.g., 180"
-            className="w-full px-4 py-2 bg-green-900/40 rounded-lg border border-green-700 text-green-100 placeholder-green-500"
-          />
-        </div>
-
-        <div>
-          <label className="text-green-200 text-sm block mb-2">Organic Matter (%)</label>
-          <input
-            type="number"
-            name="organicMatter"
-            step="0.1"
-            value={formData.organicMatter}
-            onChange={handleChange}
-            placeholder="e.g., 3.2"
-            className="w-full px-4 py-2 bg-green-900/40 rounded-lg border border-green-700 text-green-100 placeholder-green-500"
-          />
-        </div>
-
-        <div>
-          <label className="text-green-200 text-sm block mb-2">Soil Texture</label>
-          <select
-            name="texture"
-            value={formData.texture}
-            onChange={handleChange}
-            className="w-full px-4 py-2 bg-green-900/40 rounded-lg border border-green-700 text-green-100"
-          >
-            <option value="">Select texture</option>
-            <option value="Sandy">Sandy</option>
-            <option value="Loamy">Loamy</option>
-            <option value="Clay">Clay</option>
-            <option value="Silt">Silt</option>
-            <option value="Sandy Loam">Sandy Loam</option>
-            <option value="Clay Loam">Clay Loam</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="text-green-200 text-sm block mb-2">Moisture Content (%)</label>
-          <input
-            type="number"
-            name="moisture"
-            step="0.1"
-            value={formData.moisture}
-            onChange={handleChange}
-            placeholder="e.g., 25"
-            className="w-full px-4 py-2 bg-green-900/40 rounded-lg border border-green-700 text-green-100 placeholder-green-500"
-          />
-        </div>
-
-        <div>
-          <label className="text-green-200 text-sm block mb-2">Electrical Conductivity (dS/m)</label>
-          <input
-            type="number"
-            name="conductivity"
-            step="0.1"
-            value={formData.conductivity}
-            onChange={handleChange}
-            placeholder="e.g., 1.2"
-            className="w-full px-4 py-2 bg-green-900/40 rounded-lg border border-green-700 text-green-100 placeholder-green-500"
-          />
-        </div>
-      </div>
-
-      <div className="flex justify-center mt-6">
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="flex items-center space-x-2 bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-500 transition-colors disabled:opacity-50"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Analyzing...</span>
-            </>
-          ) : (
-            <>
-              <FlaskConical className="w-5 h-5" />
-              <span>Analyze Soil</span>
-            </>
-          )}
-        </button>
-      </div>
-    </form>
-  );
-};
-
-const AnalysisResult = ({ data }) => {
-  const [expandedSection, setExpandedSection] = useState(null);
-
-  const toggleSection = (section) => {
-    setExpandedSection(expandedSection === section ? null : section);
-  };
-
-  const SectionHeader = ({ icon: Icon, title, section }) => (
-    <button
-      onClick={() => toggleSection(section)}
-      className="w-full flex items-center justify-between p-4 bg-green-800/20 rounded-lg hover:bg-green-800/30 transition-colors"
-    >
-      <div className="flex items-center space-x-3">
-        <Icon className="w-5 h-5 text-green-400" />
-        <span className="font-medium text-green-200">{title}</span>
-      </div>
-      <ChevronDown 
-        className={`w-5 h-5 text-green-400 transition-transform ${
-          expandedSection === section ? 'transform rotate-180' : ''
-        }`}
-      />
-    </button>
-  );
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
-    >
-      <div className="bg-green-900/40 p-6 rounded-lg ring-1 ring-green-800/50">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-semibold text-green-300">Soil Health Score</h3>
-          <div className="flex items-center space-x-2">
-            <Scale className="w-5 h-5 text-green-400" />
-            <span className="text-2xl font-bold text-green-300">{data.healthScore}/100</span>
-          </div>
-        </div>
-        <p className="text-green-200">{data.summary}</p>
-      </div>
-
-      <div className="space-y-4">
-        <div>
-          <SectionHeader 
-            icon={Dna} 
-            title="Nutrient Status" 
-            section="nutrients" 
-          />
-          <AnimatePresence>
-            {expandedSection === 'nutrients' && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="p-4 space-y-4">
-                  {data.nutrients.map((nutrient, index) => (
-                    <div key={index} className="flex justify-between items-center">
-                      <span className="text-green-200">{nutrient.name}</span>
-                      <div className="flex items-center">
-                        <div className="w-32 h-2 bg-green-900/50 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-green-500 rounded-full"
-                            style={{ width: `${nutrient.level}%` }}
-                          />
-                        </div>
-                        <span className="ml-2 text-green-400">{nutrient.status}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        <div>
-          <SectionHeader 
-            icon={Microscope} 
-            title="Recommendations" 
-            section="recommendations" 
-          />
-          <AnimatePresence>
-            {expandedSection === 'recommendations' && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="p-4 space-y-4">
-                  {data.recommendations.map((rec, index) => (
-                    <div key={index} className="flex items-start space-x-3">
-                      <ArrowRight className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                      <p className="text-green-200">{rec}</p>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        <div>
-          <SectionHeader 
-            icon={Sprout} 
-            title="Suitable Crops" 
-            section="crops" 
-          />
-          <AnimatePresence>
-            {expandedSection === 'crops' && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="p-4">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {data.suitableCrops.map((crop, index) => (
-                      <div key={index} className="bg-green-800/20 p-3 rounded-lg text-center">
-                        <p className="text-green-300">{crop}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
-
-const SoilAnalysis = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState(null);
-  const [error, setError] = useState(null);
-
-  const analyzeSoil = async (formData) => {
-    setIsLoading(true);
+    setIsAnalyzing(true);
     setError(null);
+    setAnalysisResult(null);
 
     try {
-      // Generate mock analysis data instead of using the external API
-      // This eliminates the 404 error from the missing API endpoint
-      const mockAnalysisData = {
-        healthScore: Math.floor(70 + Math.random() * 20),
-        summary: `Your soil is generally in ${formData.pH < 6 ? 'acidic' : formData.pH > 7.5 ? 'alkaline' : 'good'} condition with ${
-          parseInt(formData.organicMatter) < 3 ? 'low' : 'adequate'} organic matter content. The ${formData.texture} texture provides ${
-          formData.texture === 'Loamy' ? 'excellent' : 'reasonable'} drainage and nutrient retention.`,
-        nutrients: [
-          {
-            name: "Nitrogen (N)",
-            level: Math.min(100, parseInt(formData.nitrogen) / 2),
-            status: parseInt(formData.nitrogen) < 140 ? "Low" : parseInt(formData.nitrogen) > 200 ? "High" : "Optimal"
-          },
-          {
-            name: "Phosphorus (P)",
-            level: Math.min(100, parseInt(formData.phosphorus) * 2),
-            status: parseInt(formData.phosphorus) < 20 ? "Low" : parseInt(formData.phosphorus) > 50 ? "High" : "Optimal"
-          },
-          {
-            name: "Potassium (K)",
-            level: Math.min(100, parseInt(formData.potassium) / 2),
-            status: parseInt(formData.potassium) < 150 ? "Low" : parseInt(formData.potassium) > 250 ? "High" : "Optimal"
-          },
-          {
-            name: "Organic Matter",
-            level: Math.min(100, parseInt(formData.organicMatter) * 20),
-            status: parseInt(formData.organicMatter) < 3 ? "Low" : parseInt(formData.organicMatter) > 6 ? "High" : "Optimal"
-          }
-        ],
-        recommendations: [
-          `${parseInt(formData.pH) < 6 ? "Apply lime to raise soil pH closer to neutral (6.5-7.0)." : parseInt(formData.pH) > 7.5 ? "Apply sulfur to lower soil pH gradually." : "Maintain current pH management practices."}`,
-          `${parseInt(formData.nitrogen) < 140 ? "Increase nitrogen with organic fertilizers or cover crops." : parseInt(formData.nitrogen) > 200 ? "Reduce nitrogen applications and consider nitrogen-consuming cover crops." : "Maintain current nitrogen levels with seasonal amendments."}`,
-          `${parseInt(formData.organicMatter) < 3 ? "Add compost or well-rotted manure to improve organic matter content." : "Continue adding organic matter to maintain soil structure and microbial activity."}`,
-          `${parseInt(formData.moisture) < 20 ? "Consider irrigation improvements to maintain adequate soil moisture." : parseInt(formData.moisture) > 35 ? "Improve drainage to prevent waterlogging." : "Current moisture management is appropriate."}`,
-          `${formData.texture === "Sandy" ? "Add clay and organic matter to improve water retention." : formData.texture === "Clay" ? "Add organic matter to improve drainage and aeration." : "Current soil texture provides good balance of drainage and retention."}`
-        ],
-        suitableCrops: getSuitableCrops(formData)
-      };
+      let result;
+      if (apiProvider === 'gemini') {
+        result = await analyzeWithGemini(formData);
+      } else {
+        result = await analyzeWithOpenRouter(formData);
+      }
 
-      setAnalysisResult(mockAnalysisData);
-      toast.success('Analysis complete!');
-    } catch (err) {
-      setError("Failed to analyze soil data. Please try again.");
-      toast.error("Analysis failed. Please try again.");
+      setAnalysisResult(result);
+    } catch (error) {
+      console.error('Analysis error:', error);
+      setError(`Analysis failed: ${error.message}`);
     } finally {
-      setIsLoading(false);
+      setIsAnalyzing(false);
     }
   };
 
-  function getSuitableCrops(formData) {
-    const pH = parseFloat(formData.pH);
-    const texture = formData.texture;
-    
-    const crops = [];
-    
-    // pH-based recommendations
-    if (pH < 6) {
-      crops.push("Blueberries", "Potatoes", "Strawberries");
-    } else if (pH >= 6 && pH < 7) {
-      crops.push("Tomatoes", "Peppers", "Carrots", "Beans");
-    } else {
-      crops.push("Asparagus", "Cabbage", "Spinach");
-    }
-    
-    // Texture-based additions
-    if (texture === "Sandy") {
-      crops.push("Radishes", "Carrots", "Lettuce");
-    } else if (texture === "Clay") {
-      crops.push("Broccoli", "Brussels Sprouts", "Pumpkins");
-    } else if (texture === "Loamy") {
-      crops.push("Corn", "Wheat", "Soybeans");
-    } else if (texture === "Silt") {
-      crops.push("Lettuce", "Root vegetables", "Berries");
-    }
-    
-    // Randomize and limit to 6 unique crops
-    return [...new Set(crops)].sort(() => 0.5 - Math.random()).slice(0, 6);
-  }
+  const resetForm = () => {
+    setFormData({
+      pH: '',
+      nitrogen: '',
+      phosphorus: '',
+      potassium: '',
+      organicMatter: '',
+      texture: '',
+      moisture: '',
+      conductivity: '',
+      location: '',
+      cropType: ''
+    });
+    setAnalysisResult(null);
+    setError(null);
+  };
+
+  const MarkdownRenderer = ({ content }) => {
+    return (
+      <div className="prose prose-invert prose-green max-w-none">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            h1: ({ children }) => <h1 className="text-2xl font-bold text-green-200 mb-4">{children}</h1>,
+            h2: ({ children }) => <h2 className="text-xl font-bold text-green-300 mb-3 mt-6">{children}</h2>,
+            h3: ({ children }) => <h3 className="text-lg font-semibold text-green-300 mb-2 mt-4">{children}</h3>,
+            p: ({ children }) => <p className="text-green-100 mb-3 leading-relaxed">{children}</p>,
+            ul: ({ children }) => <ul className="list-none space-y-2 mb-4">{children}</ul>,
+            ol: ({ children }) => <ol className="list-decimal list-inside space-y-2 mb-4 text-green-100">{children}</ol>,
+            li: ({ children }) => (
+              <li className="text-green-100 flex items-start">
+                <span className="text-green-400 mr-2">•</span>
+                <span>{children}</span>
+              </li>
+            ),
+            strong: ({ children }) => <strong className="text-green-200 font-semibold">{children}</strong>,
+            em: ({ children }) => <em className="text-green-300 italic">{children}</em>,
+            code: ({ children }) => (
+              <code className="bg-green-800/30 text-green-200 px-2 py-1 rounded text-sm">{children}</code>
+            ),
+            pre: ({ children }) => (
+              <pre className="bg-green-800/20 text-green-100 p-4 rounded-lg overflow-x-auto mb-4">{children}</pre>
+            ),
+            blockquote: ({ children }) => (
+              <blockquote className="border-l-4 border-green-500 pl-4 italic text-green-200 mb-4">{children}</blockquote>
+            ),
+            table: ({ children }) => (
+              <div className="overflow-x-auto mb-4">
+                <table className="min-w-full border border-green-700">{children}</table>
+              </div>
+            ),
+            thead: ({ children }) => <thead className="bg-green-800/30">{children}</thead>,
+            th: ({ children }) => (
+              <th className="border border-green-700 px-4 py-2 text-left text-green-200 font-semibold">{children}</th>
+            ),
+            td: ({ children }) => (
+              <td className="border border-green-700 px-4 py-2 text-green-100">{children}</td>
+            ),
+            hr: () => <hr className="border-green-700 my-6" />,
+            a: ({ href, children }) => (
+              <a href={href} className="text-green-400 hover:text-green-300 underline" target="_blank" rel="noopener noreferrer">
+                {children}
+              </a>
+            )
+          }}
+        >
+          {content}
+        </ReactMarkdown>
+      </div>
+    );
+  };
 
   return (
-    <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
-      <Toaster position="top-right" richColors closeButton />
-      
-      <div className="max-w-7xl mx-auto mb-12">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center"
-        >
-          <motion.div
-            className="inline-flex items-center justify-center p-2 mb-4 rounded-full bg-green-900/50 ring-1 ring-green-500/50"
-            whileHover={{ scale: 1.05 }}
-          >
-            <FlaskConical className="w-8 h-8 text-green-400" />
-          </motion.div>
-          <h1 className="text-4xl font-bold text-green-300 mb-4">
-            Soil Analysis
-          </h1>
-          <p className="text-xl text-green-400 max-w-2xl mx-auto">
-            Enter your soil test results for detailed analysis and recommendations
-          </p>
-        </motion.div>
-      </div>
-
+    <div className="min-h-screen py-12 px-4">
       <div className="max-w-4xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-green-900/40 rounded-lg p-6 ring-1 ring-green-800/50"
-        >
-          <SoilForm onSubmit={analyzeSoil} isLoading={isLoading} />
-          
-          {error && (
-            <div className="mt-6 flex items-center justify-center">
-              <div className="bg-red-900/20 text-red-400 px-4 py-3 rounded-lg flex items-center">
-                <AlertCircle className="w-5 h-5 mr-2" />
-                {error}
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-green-100 mb-4">Soil Health Analysis</h1>
+          <p className="text-green-200 text-lg">Enter your soil test parameters for AI-powered analysis and recommendations</p>
+        </div>
+
+        {/* API Provider Selector */}
+        <div className="bg-green-900/40 rounded-lg p-6 mb-8 ring-1 ring-green-800/50">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="flex items-center space-x-4">
+              <Settings className="w-5 h-5 text-green-400" />
+              <label className="text-green-200 font-medium">AI Provider:</label>
+              <select
+                value={apiProvider}
+                onChange={(e) => setApiProvider(e.target.value)}
+                className="px-4 py-2 rounded-lg bg-green-800/20 border border-green-800/50 text-green-100 focus:ring-2 focus:ring-green-500"
+              >
+                <option value="gemini">Google Gemini</option>
+                <option value="openrouter">OpenRouter</option>
+              </select>
+            </div>
+
+            {apiProvider === 'openrouter' && (
+              <div className="flex items-center space-x-4">
+                <label className="text-green-200 font-medium">Model:</label>
+                <select
+                  value={selectedModel}
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  className="px-4 py-2 rounded-lg bg-green-800/20 border border-green-800/50 text-green-100 focus:ring-2 focus:ring-green-500"
+                >
+                  {openRouterModels.map(model => (
+                    <option key={model.id} value={model.id}>{model.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 text-center">
+            <span className="text-green-300 text-sm">
+              {apiProvider === 'gemini' ?
+                '🌱 Gemini 1.5 Flash - Optimized for agricultural analysis' :
+                `🚀 ${openRouterModels.find(m => m.id === selectedModel)?.name} - Free AI model`
+              }
+            </span>
+          </div>
+        </div>
+
+        {/* Soil Analysis Form */}
+        <div className="bg-green-900/40 rounded-lg p-6 mb-8 ring-1 ring-green-800/50">
+          <h3 className="text-xl font-semibold text-green-100 mb-6">Soil Test Parameters</h3>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Basic Information */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-green-200 text-sm block mb-2">Location (Optional)</label>
+                <input
+                  type="text"
+                  name="location"
+                  value={formData.location}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Maharashtra, India"
+                  className="w-full px-4 py-2 rounded-lg bg-green-800/20 border border-green-800/50 text-green-100 focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-green-200 text-sm block mb-2">Intended Crop (Optional)</label>
+                <input
+                  type="text"
+                  name="cropType"
+                  value={formData.cropType}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Wheat, Rice, Tomato"
+                  className="w-full px-4 py-2 rounded-lg bg-green-800/20 border border-green-800/50 text-green-100 focus:ring-2 focus:ring-green-500"
+                />
               </div>
             </div>
-          )}
-        </motion.div>
 
-        {analysisResult && !isLoading && (
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-8"
-          >
-            <AnalysisResult data={analysisResult} />
-          </motion.div>
+            {/* Chemical Properties */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-green-200 text-sm block mb-2">pH Level *</label>
+                <input
+                  type="number"
+                  name="pH"
+                  step="0.1"
+                  min="0"
+                  max="14"
+                  value={formData.pH}
+                  onChange={handleInputChange}
+                  placeholder="e.g., 6.5"
+                  className="w-full px-4 py-2 rounded-lg bg-green-800/20 border border-green-800/50 text-green-100 focus:ring-2 focus:ring-green-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-green-200 text-sm block mb-2">Electrical Conductivity (dS/m) *</label>
+                <input
+                  type="number"
+                  name="conductivity"
+                  step="0.1"
+                  value={formData.conductivity}
+                  onChange={handleInputChange}
+                  placeholder="e.g., 1.2"
+                  className="w-full px-4 py-2 rounded-lg bg-green-800/20 border border-green-800/50 text-green-100 focus:ring-2 focus:ring-green-500"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Nutrient Content */}
+            <div className="grid md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-green-200 text-sm block mb-2">Nitrogen (mg/kg) *</label>
+                <input
+                  type="number"
+                  name="nitrogen"
+                  value={formData.nitrogen}
+                  onChange={handleInputChange}
+                  placeholder="e.g., 140"
+                  className="w-full px-4 py-2 rounded-lg bg-green-800/20 border border-green-800/50 text-green-100 focus:ring-2 focus:ring-green-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-green-200 text-sm block mb-2">Phosphorus (mg/kg) *</label>
+                <input
+                  type="number"
+                  name="phosphorus"
+                  value={formData.phosphorus}
+                  onChange={handleInputChange}
+                  placeholder="e.g., 22"
+                  className="w-full px-4 py-2 rounded-lg bg-green-800/20 border border-green-800/50 text-green-100 focus:ring-2 focus:ring-green-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-green-200 text-sm block mb-2">Potassium (mg/kg) *</label>
+                <input
+                  type="number"
+                  name="potassium"
+                  value={formData.potassium}
+                  onChange={handleInputChange}
+                  placeholder="e.g., 180"
+                  className="w-full px-4 py-2 rounded-lg bg-green-800/20 border border-green-800/50 text-green-100 focus:ring-2 focus:ring-green-500"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Physical Properties */}
+            <div className="grid md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-green-200 text-sm block mb-2">Organic Matter (%) *</label>
+                <input
+                  type="number"
+                  name="organicMatter"
+                  step="0.1"
+                  value={formData.organicMatter}
+                  onChange={handleInputChange}
+                  placeholder="e.g., 3.2"
+                  className="w-full px-4 py-2 rounded-lg bg-green-800/20 border border-green-800/50 text-green-100 focus:ring-2 focus:ring-green-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-green-200 text-sm block mb-2">Soil Texture *</label>
+                <select
+                  name="texture"
+                  value={formData.texture}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 rounded-lg bg-green-800/20 border border-green-800/50 text-green-100 focus:ring-2 focus:ring-green-500"
+                  required
+                >
+                  <option value="">Select texture</option>
+                  <option value="Sandy">Sandy</option>
+                  <option value="Loamy">Loamy</option>
+                  <option value="Clay">Clay</option>
+                  <option value="Silt">Silt</option>
+                  <option value="Sandy Loam">Sandy Loam</option>
+                  <option value="Clay Loam">Clay Loam</option>
+                  <option value="Silty Clay">Silty Clay</option>
+                  <option value="Sandy Clay">Sandy Clay</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-green-200 text-sm block mb-2">Moisture Content (%) *</label>
+                <input
+                  type="number"
+                  name="moisture"
+                  step="0.1"
+                  value={formData.moisture}
+                  onChange={handleInputChange}
+                  placeholder="e.g., 25"
+                  className="w-full px-4 py-2 rounded-lg bg-green-800/20 border border-green-800/50 text-green-100 focus:ring-2 focus:ring-green-500"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-center space-x-4">
+              <button
+                type="submit"
+                disabled={isAnalyzing}
+                className="flex items-center space-x-2 bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-500 transition-colors disabled:opacity-50"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Analyzing...</span>
+                  </>
+                ) : (
+                  <>
+                    <FlaskConical className="w-5 h-5" />
+                    <span>Analyze Soil</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={resetForm}
+                className="flex items-center space-x-2 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-500 transition-colors"
+              >
+                <span>Reset Form</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-900/40 rounded-lg p-4 mb-8 ring-1 ring-red-800/50">
+            <div className="flex items-center space-x-2">
+              <AlertCircle className="w-5 h-5 text-red-400" />
+              <p className="text-red-200">{error}</p>
+            </div>
+          </div>
         )}
+
+        {/* Analysis Results */}
+        {analysisResult && (
+          <div className="bg-green-900/40 rounded-lg p-6 ring-1 ring-green-800/50">
+            <div className="flex items-center space-x-2 mb-4">
+              <FlaskConical className="w-6 h-6 text-green-400" />
+              <h3 className="text-2xl font-bold text-green-100">Soil Analysis Results</h3>
+            </div>
+
+            <div className="bg-green-800/20 rounded-lg p-6">
+              <MarkdownRenderer content={analysisResult} />
+            </div>
+
+            <div className="mt-4 flex justify-center">
+              <span className="text-green-300 text-sm">
+                Powered by {apiProvider === 'gemini' ?
+                  'Google Gemini 1.5 Flash' :
+                  `OpenRouter - ${openRouterModels.find(m => m.id === selectedModel)?.name}`
+                }
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Features Info */}
+        <div className="mt-8 grid md:grid-cols-4 gap-4">
+          <div className="bg-green-900/40 rounded-lg p-4 ring-1 ring-green-800/50 text-center">
+            <Scale className="w-8 h-8 text-green-400 mx-auto mb-2" />
+            <h4 className="text-green-200 font-medium">pH & Salinity</h4>
+            <p className="text-green-300 text-sm">Acidity and salt analysis</p>
+          </div>
+
+          <div className="bg-green-900/40 rounded-lg p-4 ring-1 ring-green-800/50 text-center">
+            <Dna className="w-8 h-8 text-green-400 mx-auto mb-2" />
+            <h4 className="text-green-200 font-medium">Nutrient Profile</h4>
+            <p className="text-green-300 text-sm">NPK and organic matter</p>
+          </div>
+
+          <div className="bg-green-900/40 rounded-lg p-4 ring-1 ring-green-800/50 text-center">
+            <Sprout className="w-8 h-8 text-green-400 mx-auto mb-2" />
+            <h4 className="text-green-200 font-medium">Crop Recommendations</h4>
+            <p className="text-green-300 text-sm">Suitable crops for soil</p>
+          </div>
+
+          <div className="bg-green-900/40 rounded-lg p-4 ring-1 ring-green-800/50 text-center">
+            <Leaf className="w-8 h-8 text-green-400 mx-auto mb-2" />
+            <h4 className="text-green-200 font-medium">Improvement Plan</h4>
+            <p className="text-green-300 text-sm">Soil health strategies</p>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -14,24 +14,20 @@ import {
   MessageCircle,
   TrendingUp,
   MapPin,
-  LayoutGrid,
   Heart,
   Wrench,
-  Sparkles,
   LogIn
 } from 'lucide-react';
 
 const DropdownMenu = ({ title, items, isOpen, onClick }) => {
   const location = useLocation();
-  const isActivePath = (path) => location.pathname === path;
 
   return (
     <div className="relative">
       <button
         onClick={onClick}
-        className="flex items-center space-x-1 px-3 py-2 rounded-lg text-green-100 hover:bg-green-800/50 hover:text-green-200 transition-colors"
+        className="flex items-center space-x-1 px-3 py-2 rounded-lg text-green-100 hover:bg-green-800/50 transition-colors"
       >
-        <LayoutGrid className="w-4 h-4" />
         <span>{title}</span>
         <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
@@ -48,16 +44,11 @@ const DropdownMenu = ({ title, items, isOpen, onClick }) => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center space-x-2 px-4 py-2.5 hover:bg-green-800 transition-colors ${isActivePath(item.path) ? 'bg-green-800 text-green-200' : 'text-green-100'
+                className={`flex items-center space-x-2 px-4 py-2.5 hover:bg-green-800 transition-colors ${location.pathname === item.path ? 'bg-green-800 text-green-200' : 'text-green-100'
                   }`}
               >
                 <item.icon className="w-4 h-4" />
-                <span className="flex items-center">
-                  {item.label}
-                  {item.useAI && (
-                    <Sparkles className="w-3 h-3 text-yellow-400 ml-1.5" />
-                  )}
-                </span>
+                <span>{item.label}</span>
               </Link>
             ))}
           </motion.div>
@@ -75,17 +66,17 @@ const Navbar = () => {
 
   const dropdownMenus = {
     analysis: {
-      title: 'Analysis Tools',
+      title: 'Analysis',
       items: [
-        { path: '/plant-analysis', icon: Leaf, label: 'Plant Analysis', useAI: true },
-        { path: '/pest-analysis', icon: Bug, label: 'Pest Analysis', useAI: true },
+        { path: '/plant-analysis', icon: Leaf, label: 'Plant Analysis' },
+        { path: '/pest-analysis', icon: Bug, label: 'Pest Analysis' },
         { path: '/soil-analysis', icon: FlaskConical, label: 'Soil Analysis' }
       ]
     },
     services: {
       title: 'Services',
       items: [
-        { path: '/price-prediction', icon: TrendingUp, label: 'Price Prediction', useAI: true },
+        { path: '/price-prediction', icon: TrendingUp, label: 'Price Prediction' },
         { path: '/land-lease', icon: MapPin, label: 'Land Lease' },
         { path: '/equipment-lease', icon: Wrench, label: 'Equipment Lease' }
       ]
@@ -93,7 +84,7 @@ const Navbar = () => {
     community: {
       title: 'Community',
       items: [
-        { path: '/forum', icon: MessageCircle, label: 'Forum', useAI: true },
+        { path: '/forum', icon: MessageCircle, label: 'Forum' },
         { path: '/news', icon: FileText, label: 'News' },
         { path: '/farmer-support', icon: Heart, label: 'Support Farmers' }
       ]
@@ -104,14 +95,12 @@ const Navbar = () => {
     setOpenDropdown(openDropdown === dropdown ? null : dropdown);
   };
 
-  // Close dropdowns when clicking outside
   React.useEffect(() => {
     const handleClickOutside = () => setOpenDropdown(null);
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
-  // Close mobile menu when route changes
   React.useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location]);
@@ -131,8 +120,8 @@ const Navbar = () => {
             <Link
               to="/"
               className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${location.pathname === '/'
-                ? 'bg-green-800 text-green-200'
-                : 'text-green-100 hover:bg-green-800/50 hover:text-green-200'
+                  ? 'bg-green-800 text-green-200'
+                  : 'text-green-100 hover:bg-green-800/50'
                 }`}
             >
               <Home className="w-4 h-4" />
@@ -153,8 +142,8 @@ const Navbar = () => {
             ))}
           </div>
 
-          {/* Authentication Section */}
-          <div className="hidden md:flex items-center space-x-4">
+          {/* Authentication */}
+          <div className="hidden md:flex items-center space-x-3">
             <SignedOut>
               <SignInButton mode="modal">
                 <button className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
@@ -189,14 +178,14 @@ const Navbar = () => {
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t border-green-800"
+            initial={{ height: 0 }}
+            animate={{ height: 'auto' }}
+            exit={{ height: 0 }}
+            className="md:hidden border-t border-green-800 overflow-hidden"
           >
-            <div className="px-2 py-3">
+            <div className="px-4 py-4 space-y-2">
               {/* Mobile Authentication */}
-              <div className="mb-4 px-3">
+              <div className="mb-4">
                 <SignedOut>
                   <SignInButton mode="modal">
                     <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
@@ -219,9 +208,9 @@ const Navbar = () => {
 
               <Link
                 to="/"
-                className={`flex items-center space-x-2 px-3 py-2 rounded-lg mb-2 ${location.pathname === '/'
-                  ? 'bg-green-800 text-green-200'
-                  : 'text-green-100 hover:bg-green-800/50'
+                className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${location.pathname === '/'
+                    ? 'bg-green-800 text-green-200'
+                    : 'text-green-100 hover:bg-green-800/50'
                   }`}
               >
                 <Home className="w-4 h-4" />
@@ -229,30 +218,23 @@ const Navbar = () => {
               </Link>
 
               {Object.entries(dropdownMenus).map(([key, menu]) => (
-                <div key={key} className="mb-2">
+                <div key={key} className="space-y-1">
                   <div className="px-3 py-2 text-sm font-medium text-green-400">
                     {menu.title}
                   </div>
-                  <div className="space-y-1">
-                    {menu.items.map((item) => (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        className={`flex items-center space-x-2 px-6 py-2 rounded-lg ${location.pathname === item.path
+                  {menu.items.map((item) => (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={`flex items-center space-x-2 px-6 py-2 rounded-lg ${location.pathname === item.path
                           ? 'bg-green-800 text-green-200'
                           : 'text-green-100 hover:bg-green-800/50'
-                          }`}
-                      >
-                        <item.icon className="w-4 h-4" />
-                        <span className="flex items-center">
-                          {item.label}
-                          {item.useAI && (
-                            <Sparkles className="w-3 h-3 text-yellow-400 ml-1.5" />
-                          )}
-                        </span>
-                      </Link>
-                    ))}
-                  </div>
+                        }`}
+                    >
+                      <item.icon className="w-4 h-4" />
+                      <span>{item.label}</span>
+                    </Link>
+                  ))}
                 </div>
               ))}
             </div>

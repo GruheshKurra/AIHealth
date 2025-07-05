@@ -1,31 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Clock, ExternalLink, Loader2, AlertCircle, Filter } from 'lucide-react';
+import { Calendar, Clock, ExternalLink, Loader2, AlertCircle, Newspaper } from 'lucide-react';
 
-const NewsCard = ({ article, index }) => {
-  // Format date to be more readable
+const NewsCard = ({ article }) => {
   const formatDate = (dateString) => {
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
   return (
-    <motion.article
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
-      className="bg-green-900/30 rounded-xl overflow-hidden backdrop-blur-sm ring-1 ring-green-800/30 
-        hover:ring-green-700/50 transition-all duration-300 flex flex-col h-full group"
-    >
+    <article className="bg-green-900/40 rounded-lg overflow-hidden ring-1 ring-green-800/50 hover:ring-green-700/50 transition-all duration-300 flex flex-col h-full">
       {article.image && (
-        <div className="aspect-video overflow-hidden relative">
+        <div className="aspect-video overflow-hidden">
           <img
             src={article.image}
             alt={article.title}
-            className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+            className="w-full h-full object-cover"
             onError={(e) => e.target.style.display = 'none'}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-green-900/90 to-transparent" />
         </div>
       )}
 
@@ -41,7 +32,7 @@ const NewsCard = ({ article, index }) => {
           </div>
         </div>
 
-        <h3 className="text-xl font-semibold text-green-200 mb-3 line-clamp-2 hover:text-green-300 transition-colors">
+        <h3 className="text-xl font-semibold text-green-200 mb-3 line-clamp-2">
           {article.title}
         </h3>
 
@@ -54,19 +45,19 @@ const NewsCard = ({ article, index }) => {
             href={article.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center text-green-400 hover:text-green-300 transition-colors group/link"
+            className="inline-flex items-center text-green-400 hover:text-green-300 transition-colors"
           >
             <span>Read Full Article</span>
-            <ExternalLink className="w-4 h-4 ml-2 transform group-hover/link:translate-x-1 transition-transform" />
+            <ExternalLink className="w-4 h-4 ml-2" />
           </a>
         </div>
       </div>
-    </motion.article>
+    </article>
   );
 };
 
 const LoadingCard = () => (
-  <div className="bg-green-900/30 rounded-xl overflow-hidden backdrop-blur-sm ring-1 ring-green-800/30 h-full">
+  <div className="bg-green-900/40 rounded-lg overflow-hidden ring-1 ring-green-800/50 h-full">
     <div className="aspect-video bg-green-800/30 animate-pulse" />
     <div className="p-6">
       <div className="flex items-center space-x-4 mb-4">
@@ -84,17 +75,15 @@ const LoadingCard = () => (
 );
 
 const CategoryButton = ({ active, children, onClick }) => (
-  <motion.button
-    whileHover={{ scale: 1.05 }}
-    whileTap={{ scale: 0.95 }}
+  <button
     onClick={onClick}
-    className={`px-4 py-2 rounded-full transition-all duration-300 ${active
-        ? 'bg-green-500 text-green-950 font-medium shadow-lg ring-2 ring-green-400/50'
-        : 'bg-green-900/50 text-green-300 hover:bg-green-800 ring-1 ring-green-800/50'
+    className={`px-4 py-2 rounded-lg transition-all duration-300 ${active
+      ? 'bg-green-600 text-green-100 font-medium'
+      : 'bg-green-900/50 text-green-300 hover:bg-green-800/50 ring-1 ring-green-800/50'
       }`}
   >
     {children}
-  </motion.button>
+  </button>
 );
 
 const News = () => {
@@ -139,26 +128,18 @@ const News = () => {
   }, [category]);
 
   return (
-    <div className="min-h-screen pt-20 pb-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen py-12 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
-        >
-          <motion.div
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
-            className="inline-flex items-center justify-center p-2 mb-6 rounded-full bg-green-900/50 ring-1 ring-green-500/50"
-          >
-            <Filter className="w-6 h-6 text-green-400" />
-          </motion.div>
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center justify-center p-2 mb-6 rounded-full bg-green-900/50 ring-1 ring-green-800/50">
+            <Newspaper className="w-6 h-6 text-green-400" />
+          </div>
 
-          <h1 className="text-4xl font-bold text-green-200 mb-4">
+          <h1 className="text-4xl font-bold text-green-100 mb-4">
             Agricultural News & Insights
           </h1>
-          <p className="text-green-400 text-lg mb-8 max-w-2xl mx-auto">
+          <p className="text-green-200 text-lg mb-8 max-w-2xl mx-auto">
             Stay updated with the latest farming news, trends, and innovations
           </p>
 
@@ -174,43 +155,45 @@ const News = () => {
               </CategoryButton>
             ))}
           </div>
-        </motion.div>
+        </div>
 
         {/* Error Display */}
         {error && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex items-center justify-center p-4 mb-8 bg-red-900/20 rounded-xl"
-          >
+          <div className="flex items-center justify-center p-4 mb-8 bg-red-900/40 rounded-lg ring-1 ring-red-800/50">
             <AlertCircle className="w-5 h-5 text-red-400 mr-2" />
-            <p className="text-red-400">{error}</p>
-          </motion.div>
+            <p className="text-red-300">{error}</p>
+          </div>
         )}
 
         {/* Loading State */}
         {loading && (
           <div className="flex items-center justify-center mb-8">
-            <Loader2 className="w-8 h-8 text-green-400 animate-spin" />
+            <Loader2 className="w-8 h-8 text-green-400 animate-spin mr-2" />
+            <span className="text-green-200">Loading news...</span>
           </div>
         )}
 
         {/* News Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <AnimatePresence mode="wait">
-            {loading ? (
-              [...Array(6)].map((_, i) => <LoadingCard key={i} />)
-            ) : (
-              news.map((article, index) => (
-                <NewsCard
-                  key={article.url || index}
-                  article={article}
-                  index={index}
-                />
-              ))
-            )}
-          </AnimatePresence>
+          {loading ? (
+            [...Array(6)].map((_, i) => <LoadingCard key={i} />)
+          ) : (
+            news.map((article, index) => (
+              <NewsCard
+                key={article.url || index}
+                article={article}
+              />
+            ))
+          )}
         </div>
+
+        {/* No Results */}
+        {!loading && news.length === 0 && !error && (
+          <div className="text-center py-12">
+            <Newspaper className="w-12 h-12 mx-auto mb-4 text-green-500 opacity-50" />
+            <p className="text-green-400">No news articles found for this category.</p>
+          </div>
+        )}
       </div>
     </div>
   );
